@@ -13,10 +13,21 @@ import { app, db } from './firebase.js';
 import { validateAccessCode } from './access-code.js';
 import { createPlayerProfile } from './player-profile.js';
 
-const auth = getAuth(app);
+const auth = app ? getAuth(app) : null;
+
+function ensureAuth() {
+  if (!auth) {
+    const error = new Error('Firebase não configurado.');
+    error.code = 'FIREBASE_NOT_CONFIGURED';
+    throw error;
+  }
+
+  return auth;
+}
 
 export async function registerPlayer({ displayName, email, password }) {
-  const credential = await createUserWithEmailAndPassword(auth, email, password);
+  const activeAuth = ensureAuth();
+  const credential = await createUserWithEmailAndPassword(activeAuth, email, password);
 
   await updateProfile(credential.user, {
     displayName
@@ -69,7 +80,8 @@ export async function handleRegister(form) {
 }
 
 export async function loginPlayer(email, password) {
-  const credential = await signInWithEmailAndPassword(auth, email, password);
+  const activeAuth = ensureAuth();
+  const credential = await signInWithEmailAndPassword(activeAuth, email, password);
 
   return credential.user;
 }
@@ -116,14 +128,16 @@ export async function loginWithIdentifier(identifier, password) {
 }
 
 export async function logoutPlayer() {
-  await signOut(auth);
+  const activeAuth = ensureAuth();
+  await signOut(activeAuth);
 }
 
 export function getCurrentPlayer() {
-  return auth.currentUser;
+  return auth?.currentUser ?? null;
 }
 
 export async function requestPasswordReset(email) {
+  const activeAuth = ensureAuth();
   const normalizedEmail = String(email ?? '')
     .trim()
     .toLowerCase();
@@ -135,7 +149,7 @@ export async function requestPasswordReset(email) {
   }
 
   try {
-    await sendPasswordResetEmail(auth, normalizedEmail);
+    await sendPasswordResetEmail(activeAuth, normalizedEmail);
   } catch (error) {
     const code = String(error?.code ?? error?.message ?? '').toLowerCase();
 
