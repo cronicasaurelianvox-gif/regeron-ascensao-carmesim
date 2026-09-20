@@ -1,0 +1,36 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #f8fafc;
+  background: #0f172a;
+}
+
+body {
+  display: grid;
+  min-height: 100vh;
+  margin: 0;
+  place-items: center;
+}
+
+.game-shell {
+  width: min(90vw, 560px);
+  padding: 2rem;
+  text-align: center;
+  background: #1e293b;
+  border-radius: 1rem;
+  box-shadow: 0 1rem 3rem rgb(0 0 0 / 25%);
+}
+
+button {
+  padding: 0.75rem 1rem;
+  color: #0f172a;
+  font: inherit;
+  font-weight: 700;
+  background: #38bdf8;
+  border: 0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #7dd3fc;
+}
