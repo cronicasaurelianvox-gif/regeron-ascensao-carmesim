@@ -8,7 +8,8 @@ export default [
       ecmaVersion: 'latest',
       sourceType: 'module',
       globals: {
-        document: 'readonly'
+        document: 'readonly',
+        FormData: 'readonly'
       }
     },
     rules: {

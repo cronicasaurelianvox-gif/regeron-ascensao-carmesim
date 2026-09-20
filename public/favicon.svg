@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Re:Geron favicon</title>
+  <desc id="desc">Símbolo medieval em vermelho carmesim e dourado sobre fundo escuro.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#1a090b" />
+      <stop offset="50%" stop-color="#2b0d12" />
+      <stop offset="100%" stop-color="#120708" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#f0d38c" />
+      <stop offset="45%" stop-color="#d2a454" />
+      <stop offset="100%" stop-color="#a66b22" />
+    </linearGradient>
+    <linearGradient id="crimson" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#b92235" />
+      <stop offset="50%" stop-color="#8f1525" />
+      <stop offset="100%" stop-color="#4a0e16" />
+    </linearGradient>
+  </defs>
+
+  <rect width="128" height="128" rx="26" fill="url(#bg)" />
+
+  <circle cx="64" cy="64" r="52" fill="none" stroke="url(#gold)" stroke-width="3" opacity="0.9"/>
+  <circle cx="64" cy="64" r="42" fill="none" stroke="rgba(240,211,140,0.4)" stroke-width="1.5"/>
+
+  <path
+    d="M64 20 L76 40 L92 43 L82 57 L87 74 L64 63 L41 74 L46 57 L36 43 L52 40 Z"
+    fill="url(#crimson)"
+    stroke="url(#gold)"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+
+  <path
+    d="M64 28 L69 44 L86 47 L73 58 L77 75 L64 65 L51 75 L55 58 L42 47 L59 44 Z"
+    fill="none"
+    stroke="rgba(240,211,140,0.9)"
+    stroke-width="2.2"
+    stroke-linejoin="round"
+  />
+
+  <path
+    d="M48 86 L64 75 L80 86"
+    fill="none"
+    stroke="url(#gold)"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <path
+    d="M64 77 L64 104"
+    fill="none"
+    stroke="url(#gold)"
+    stroke-width="4"
+    stroke-linecap="round"
+  />
+
+  <path
+    d="M53 96 L64 91 L75 96"
+    fill="none"
+    stroke="rgba(240,211,140,0.85)"
+    stroke-width="2.5"
+    stroke-linecap="round"
+  />
+</svg>

@@ -1,6 +1,7 @@
 {
   "projects": {
-    "default": "regeron-ascensao-carmesim"
+    "default": "regeron-ascensao-carmesim",
+    "firebase deploy --only firestore:rules": "regeron-ascensao-carmesim"
   },
   "targets": {},
   "etags": {}
