@@ -9,7 +9,10 @@ export default [
       sourceType: 'module',
       globals: {
         document: 'readonly',
-        FormData: 'readonly'
+        FormData: 'readonly',
+        localStorage: 'readonly',
+        Audio: 'readonly',
+        console: 'readonly'
       }
     },
     rules: {

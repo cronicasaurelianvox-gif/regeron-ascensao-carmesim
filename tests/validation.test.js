@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
-import { togglePasswordVisibility } from '../src/ui/auth-screen.js';
+import { createAuthScreen, togglePasswordVisibility } from '../src/ui/auth-screen.js';
 import { createAdventureHub } from '../src/ui/adventure-hub.js';
 import { validateEmail, validateLoginForm, validateSignupForm } from '../src/ui/validation.js';
 import { handleRegister } from '../src/services/auth.js';
@@ -119,6 +119,22 @@ describe('handleRegister', () => {
     expect(validateAccessCode).not.toHaveBeenCalled();
     expect(createUserWithEmailAndPassword).not.toHaveBeenCalled();
     expect(createPlayerProfile).not.toHaveBeenCalled();
+  });
+});
+
+describe('createAuthScreen', () => {
+  it('renderiza o botão de ajuste de som com ícone de volume em SVG', () => {
+    const app = document.createElement('div');
+    app.id = 'app';
+    document.body.appendChild(app);
+
+    createAuthScreen();
+
+    const volumeButton = app.querySelector('.music-mute-toggle');
+    expect(volumeButton).not.toBeNull();
+    expect(volumeButton.querySelector('svg')).not.toBeNull();
+
+    app.remove();
   });
 });
 

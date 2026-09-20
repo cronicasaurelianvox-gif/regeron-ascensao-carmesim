@@ -1,3 +1,12 @@
+import {
+  clampVolume,
+  filterTracksByQuery,
+  formatTrackName,
+  getNextTrackIndex,
+  getPreviousTrackIndex,
+  musicPlaylist,
+  getTrackSource
+} from '../audio/music-playlist.js';
 import { handleRegister, loginWithIdentifier, requestPasswordReset } from '../services/auth.js';
 import { createAdventureHub } from './adventure-hub.js';
 import { validateEmail, validateLoginForm, validateSignupForm } from './validation.js';
@@ -11,6 +20,28 @@ export function togglePasswordVisibility(input, shouldShow) {
   return input.type;
 }
 
+function createVolumeIcon({ muted = false } = {}) {
+  const accentColor = muted ? '#d9b779' : '#f3e4c2';
+  const mutedSlash = muted
+    ? '<path d="M19 7L7 19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />'
+    : '';
+
+  return `
+    <svg
+      class="music-volume-icon ${muted ? 'is-muted' : ''}"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+      role="img"
+    >
+      <path d="M3 10h4l5-4v12l-5-4H3z" fill="${accentColor}" opacity="0.95" />
+      <path d="M14.8 9.2c1.1 0.9 1.7 2.1 1.7 3.3s-0.6 2.4-1.7 3.3" fill="none" stroke="${accentColor}" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M17.7 6.8c2 1.5 3.3 3.4 3.3 5.7s-1.3 4.2-3.3 5.7" fill="none" stroke="${accentColor}" stroke-width="1.5" stroke-linecap="round" />
+      ${mutedSlash}
+    </svg>
+  `;
+}
+
 export function createAuthScreen() {
   const app = document.querySelector('#app');
 
@@ -22,9 +53,111 @@ export function createAuthScreen() {
     <div class="auth-scene" aria-label="Tela inicial de autenticação do jogo">
       <div class="ambient ambient-left"></div>
       <div class="ambient ambient-right"></div>
-      <button class="sound-toggle" type="button" aria-label="Ativar ou desativar som">
-        Som: off
+      <button class="sound-toggle" type="button" aria-label="Abrir player de música" title="Abrir player de música">
+        ♫
       </button>
+
+      <div class="music-player-shell is-minimized" aria-live="polite">
+        <div class="music-player" role="dialog" aria-label="Player de trilha sonora" aria-expanded="false">
+          <div class="music-player-header">
+            <span class="music-player-kicker">TRILHA SONORA</span>
+            <div class="music-player-header-actions">
+              <button
+                type="button"
+                class="music-loop-toggle"
+                aria-label="Ativar loop"
+                title="Ativar loop"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">↻</span>
+              </button>
+              <div class="music-volume-anchor">
+                <button
+                  type="button"
+                  class="music-icon-button music-mute-toggle music-header-mute-toggle"
+                  aria-label="Abrir ajuste de volume"
+                  title="Abrir ajuste de volume"
+                >
+                  ${createVolumeIcon({ muted: false })}
+                </button>
+                <div class="music-volume-popover" aria-hidden="true">
+                  <div class="music-volume-popover-inner">
+                    <input class="music-volume-slider" type="range" min="0" max="1" step="0.01" value="0.25" aria-label="Volume" />
+                    <span class="music-volume-value">25%</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="music-icon-button music-library-toggle music-header-library-toggle"
+                aria-label="Abrir biblioteca de músicas"
+                title="Biblioteca"
+                aria-expanded="false"
+              >
+                <span aria-hidden="true">☰</span>
+              </button>
+              <button class="music-player-close" type="button" aria-label="Minimizar player" title="Minimizar player">
+                −
+              </button>
+            </div>
+          </div>
+
+          <div class="music-player-body">
+            <div class="music-player-track">
+              <span class="music-player-status">Pausada</span>
+              <strong class="music-player-track-name">Carregando...</strong>
+            </div>
+
+            <div class="music-player-progress">
+              <input class="music-progress" type="range" min="0" max="100" step="0.1" value="0" aria-label="Progresso da música" />
+              <div class="music-time-row">
+                <span class="music-current-time">00:00</span>
+                <span class="music-duration">00:00</span>
+              </div>
+            </div>
+
+            <div class="music-player-controls">
+              <button type="button" class="music-icon-button music-previous" aria-label="Música anterior" title="Música anterior">
+                ⏮
+              </button>
+              <button type="button" class="music-icon-button music-play-toggle" aria-label="Reproduzir música" title="Reproduzir música">
+                ▶
+              </button>
+              <button type="button" class="music-icon-button music-next" aria-label="Próxima música" title="Próxima música">
+                ⏭
+              </button>
+            </div>
+
+            <div class="music-player-volume-row">
+              <div class="music-player-volume-tools"></div>
+            </div>
+
+            <div class="music-player-footer-row" aria-hidden="true">
+              <label class="music-track-select-wrap" for="music-track-select">
+                <span>Faixa</span>
+                <select id="music-track-select" class="music-track-select" aria-label="Selecionar música"></select>
+              </label>
+            </div>
+
+            <div class="music-library-panel is-collapsed">
+              <div class="music-track-search-wrap" role="search">
+                <span class="music-track-search-icon" aria-hidden="true">⌕</span>
+                <input
+                  class="music-track-search"
+                  type="search"
+                  placeholder="Pesquisar música..."
+                  aria-label="Pesquisar música"
+                />
+              </div>
+
+              <div class="music-track-list-wrapper">
+                <ul class="music-track-list" aria-label="Lista de músicas"></ul>
+                <p class="music-track-empty" aria-live="polite">Nenhuma trilha encontrada.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <main class="auth-panel" aria-live="polite">
         <div class="panel-emblem" aria-hidden="true">R</div>
@@ -181,9 +314,401 @@ export function createAuthScreen() {
   const signupSection = app.querySelector('[data-view="signup"]');
   const loginForm = app.querySelector('#login-form');
   const signupForm = app.querySelector('#signup-form');
+  const musicPlayerShell = app.querySelector('.music-player-shell');
+  const musicPlayer = app.querySelector('.music-player');
+  const musicPlayerClose = app.querySelector('.music-player-close');
+  const musicPlayerTrackName = app.querySelector('.music-player-track-name');
+  const musicPlayerStatus = app.querySelector('.music-player-status');
+  const musicPlayToggle = app.querySelector('.music-play-toggle');
+  const musicPreviousButton = app.querySelector('.music-previous');
+  const musicNextButton = app.querySelector('.music-next');
+  const musicMuteToggle = app.querySelector('.music-mute-toggle');
+  const musicVolumeSlider = app.querySelector('.music-volume-slider');
+  const musicVolumeValue = app.querySelector('.music-volume-value');
+  const musicProgress = app.querySelector('.music-progress');
+  const musicCurrentTime = app.querySelector('.music-current-time');
+  const musicDuration = app.querySelector('.music-duration');
+  const musicLoopToggle = app.querySelector('.music-loop-toggle');
+  const musicLibraryToggle = app.querySelector('.music-library-toggle');
+  const musicTrackSelect = app.querySelector('.music-track-select');
+  const musicTrackSearch = app.querySelector('.music-track-search');
+  const musicTrackList = app.querySelector('.music-track-list');
+  const musicTrackEmpty = app.querySelector('.music-track-empty');
+  const musicLibraryPanel = app.querySelector('.music-library-panel');
 
-  let soundEnabled = false;
+  const musicStorageKeys = {
+    enabled: 'regeron-music-enabled',
+    volume: 'regeron-music-volume',
+    track: 'regeron-music-track',
+    loop: 'regeron-music-loop',
+    minimized: 'regeron-music-minimized'
+  };
+
+  const readStoredValue = (key, fallback) => {
+    try {
+      const storedValue = localStorage.getItem(key);
+
+      if (storedValue === null) {
+        return fallback;
+      }
+
+      return JSON.parse(storedValue);
+    } catch {
+      return fallback;
+    }
+  };
+
+  const writeStoredValue = (key, value) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      // Ignora falhas de armazenamento do navegador.
+    }
+  };
+
+  const playlist = [...musicPlaylist];
+  const audioElement = new Audio();
+  audioElement.loop = false;
+  audioElement.preload = 'auto';
+
+  let soundEnabled = readStoredValue(musicStorageKeys.enabled, false);
   let activeView = 'login';
+  let activeVolume = clampVolume(readStoredValue(musicStorageKeys.volume, 0.25));
+  let activeTrackIndex = Number(readStoredValue(musicStorageKeys.track, 0));
+  let isLoopEnabled = Boolean(readStoredValue(musicStorageKeys.loop, false));
+  let isMinimized = Boolean(readStoredValue(musicStorageKeys.minimized, true));
+  let isLibraryOpen = false;
+  let isVolumePopoverOpen = false;
+  let lastVolumeBeforeMute = activeVolume > 0 ? activeVolume : 0.25;
+  let trackSearchQuery = '';
+
+  audioElement.volume = clampVolume(activeVolume);
+  audioElement.loop = false;
+
+  if (!Number.isInteger(activeTrackIndex) || activeTrackIndex < 0) {
+    activeTrackIndex = 0;
+  }
+
+  if (playlist.length > 0) {
+    activeTrackIndex = Math.min(activeTrackIndex, playlist.length - 1);
+  }
+
+  const formatTime = (value) => {
+    const seconds = Number.isFinite(value) ? Math.max(0, value) : 0;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+
+    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+  };
+
+  const updateTrackSelector = () => {
+    if (!musicTrackSelect) {
+      return;
+    }
+
+    musicTrackSelect.innerHTML = playlist
+      .map(
+        (track, index) =>
+          `<option value="${index}" ${index === activeTrackIndex ? 'selected' : ''}>${formatTrackName(track.fileName)}</option>`
+      )
+      .join('');
+  };
+
+  const updateTrackList = () => {
+    if (!musicTrackList) {
+      return;
+    }
+
+    const visibleTracks = filterTracksByQuery(playlist, trackSearchQuery);
+
+    musicTrackList.innerHTML = visibleTracks
+      .map((track, index) => {
+        const globalIndex = playlist.findIndex((item) => item.fileName === track.fileName);
+        const resolvedIndex = globalIndex >= 0 ? globalIndex : index;
+        const isCurrent = resolvedIndex === activeTrackIndex;
+        const isPlaying = isCurrent && soundEnabled && !audioElement.paused;
+
+        return `
+          <li>
+            <button
+              type="button"
+              class="music-track-item ${isCurrent ? 'is-active' : ''} ${isPlaying ? 'is-playing' : ''}"
+              data-track-index="${resolvedIndex}"
+              aria-label="Selecionar música ${formatTrackName(track.fileName)}"
+              title="${formatTrackName(track.fileName)}"
+            >
+              <span>${formatTrackName(track.fileName)}</span>
+            </button>
+          </li>
+        `;
+      })
+      .join('');
+
+    if (musicTrackEmpty) {
+      musicTrackEmpty.hidden = visibleTracks.length > 0;
+    }
+  };
+
+  const syncLibraryState = () => {
+    if (musicLibraryPanel) {
+      musicLibraryPanel.classList.toggle('is-collapsed', !isLibraryOpen);
+    }
+
+    if (musicLibraryToggle) {
+      musicLibraryToggle.setAttribute('aria-expanded', String(isLibraryOpen));
+      musicLibraryToggle.setAttribute(
+        'aria-label',
+        isLibraryOpen ? 'Fechar biblioteca de músicas' : 'Abrir biblioteca de músicas'
+      );
+      musicLibraryToggle.title = isLibraryOpen ? 'Fechar biblioteca' : 'Biblioteca';
+    }
+  };
+
+  const syncVolumePopoverState = () => {
+    const volumePopover = app.querySelector('.music-volume-popover');
+
+    if (!volumePopover) {
+      return;
+    }
+
+    volumePopover.classList.toggle('is-open', isVolumePopoverOpen);
+    volumePopover.setAttribute('aria-hidden', String(!isVolumePopoverOpen));
+  };
+
+  const updatePlayerState = () => {
+    if (musicPlayerShell) {
+      musicPlayerShell.classList.toggle('is-minimized', isMinimized);
+    }
+
+    if (musicPlayer) {
+      musicPlayer.setAttribute('aria-expanded', String(!isMinimized));
+      musicPlayer.hidden = isMinimized;
+    }
+
+    if (soundToggle) {
+      const buttonLabel = isMinimized ? 'Abrir player de música' : 'Minimizar player de música';
+      soundToggle.setAttribute('aria-label', buttonLabel);
+      soundToggle.setAttribute('aria-pressed', String(!isMinimized));
+      soundToggle.title = buttonLabel;
+      soundToggle.textContent = soundEnabled && !audioElement.paused ? '♫' : '♪';
+      soundToggle.classList.toggle('is-playing', soundEnabled && !audioElement.paused);
+    }
+
+    if (musicPlayerTrackName) {
+      const currentTrack = playlist[activeTrackIndex];
+      musicPlayerTrackName.textContent = currentTrack
+        ? formatTrackName(currentTrack.fileName)
+        : 'Sem música';
+    }
+
+    if (musicPlayerStatus) {
+      musicPlayerStatus.textContent =
+        soundEnabled && !audioElement.paused ? 'Reproduzindo' : 'Pausada';
+    }
+
+    if (musicPlayToggle) {
+      const shouldShowPause = soundEnabled && !audioElement.paused;
+      musicPlayToggle.textContent = shouldShowPause ? '❚❚' : '▶';
+      musicPlayToggle.setAttribute(
+        'aria-label',
+        shouldShowPause ? 'Pausar música' : 'Reproduzir música'
+      );
+      musicPlayToggle.title = shouldShowPause ? 'Pausar música' : 'Reproduzir música';
+    }
+
+    if (musicMuteToggle) {
+      const isMuted = activeVolume === 0;
+      musicMuteToggle.innerHTML = createVolumeIcon({ muted: isMuted });
+      musicMuteToggle.setAttribute(
+        'aria-label',
+        isVolumePopoverOpen ? 'Fechar ajuste de volume' : 'Abrir ajuste de volume'
+      );
+      musicMuteToggle.title = isVolumePopoverOpen
+        ? 'Fechar ajuste de volume'
+        : 'Abrir ajuste de volume';
+    }
+
+    if (musicVolumeSlider) {
+      musicVolumeSlider.value = String(activeVolume);
+    }
+
+    if (musicVolumeValue) {
+      musicVolumeValue.textContent = `${Math.round(activeVolume * 100)}%`;
+    }
+
+    if (musicProgress) {
+      const totalDuration = Number.isFinite(audioElement.duration) ? audioElement.duration : 0;
+      const currentDuration = Number.isFinite(audioElement.currentTime)
+        ? audioElement.currentTime
+        : 0;
+      const progressValue = totalDuration > 0 ? (currentDuration / totalDuration) * 100 : 0;
+      musicProgress.value = String(progressValue);
+    }
+
+    if (musicCurrentTime) {
+      musicCurrentTime.textContent = formatTime(audioElement.currentTime);
+    }
+
+    if (musicDuration) {
+      musicDuration.textContent = formatTime(audioElement.duration);
+    }
+
+    if (musicLoopToggle) {
+      musicLoopToggle.classList.toggle('is-active', isLoopEnabled);
+      musicLoopToggle.setAttribute('aria-label', isLoopEnabled ? 'Desativar loop' : 'Ativar loop');
+      musicLoopToggle.setAttribute('aria-pressed', String(isLoopEnabled));
+      musicLoopToggle.title = isLoopEnabled ? 'Desativar loop' : 'Ativar loop';
+    }
+
+    updateTrackSelector();
+    updateTrackList();
+    syncLibraryState();
+    syncVolumePopoverState();
+  };
+
+  const applyCurrentTrack = ({ autoPlay = false } = {}) => {
+    if (playlist.length === 0) {
+      return false;
+    }
+
+    const safeTrackIndex = Math.min(activeTrackIndex, playlist.length - 1);
+    activeTrackIndex = safeTrackIndex;
+    const track = playlist[safeTrackIndex];
+
+    if (!track) {
+      return false;
+    }
+
+    audioElement.src = getTrackSource(track.fileName);
+    audioElement.volume = clampVolume(activeVolume);
+    audioElement.loop = isLoopEnabled;
+    audioElement.load();
+    writeStoredValue(musicStorageKeys.track, safeTrackIndex);
+    updatePlayerState();
+
+    if (autoPlay && soundEnabled) {
+      audioElement
+        .play()
+        .then(() => {
+          updatePlayerState();
+        })
+        .catch(() => {
+          soundEnabled = false;
+          writeStoredValue(musicStorageKeys.enabled, false);
+          updatePlayerState();
+          setMessage('info', 'Clique no botão de som para iniciar a música.');
+        });
+    }
+
+    return true;
+  };
+
+  const pauseCurrentTrack = () => {
+    audioElement.pause();
+    soundEnabled = false;
+    writeStoredValue(musicStorageKeys.enabled, false);
+    updatePlayerState();
+  };
+
+  const playCurrentTrack = async () => {
+    if (!playlist.length) {
+      return;
+    }
+
+    if (!audioElement.src) {
+      applyCurrentTrack({ autoPlay: true });
+      return;
+    }
+
+    try {
+      await audioElement.play();
+      soundEnabled = true;
+      writeStoredValue(musicStorageKeys.enabled, true);
+      updatePlayerState();
+    } catch {
+      soundEnabled = false;
+      writeStoredValue(musicStorageKeys.enabled, false);
+      updatePlayerState();
+      setMessage('info', 'Clique no botão de som para iniciar a música.');
+    }
+  };
+
+  const advanceToNextTrack = ({ fromEnd = false } = {}) => {
+    if (playlist.length === 0) {
+      return;
+    }
+
+    if (fromEnd) {
+      activeTrackIndex = 0;
+    } else {
+      activeTrackIndex = getNextTrackIndex(activeTrackIndex, playlist.length);
+    }
+
+    applyCurrentTrack({ autoPlay: soundEnabled });
+  };
+
+  audioElement.addEventListener('loadedmetadata', () => {
+    updatePlayerState();
+  });
+
+  audioElement.addEventListener('timeupdate', () => {
+    updatePlayerState();
+  });
+
+  audioElement.addEventListener('play', () => {
+    soundEnabled = true;
+    writeStoredValue(musicStorageKeys.enabled, true);
+    updatePlayerState();
+  });
+
+  audioElement.addEventListener('pause', () => {
+    soundEnabled = false;
+    writeStoredValue(musicStorageKeys.enabled, false);
+    updatePlayerState();
+  });
+
+  audioElement.addEventListener('ended', () => {
+    if (!soundEnabled) {
+      return;
+    }
+
+    if (isLoopEnabled) {
+      audioElement.currentTime = 0;
+      audioElement.play().catch(() => {
+        soundEnabled = false;
+        writeStoredValue(musicStorageKeys.enabled, false);
+        updatePlayerState();
+      });
+      return;
+    }
+
+    advanceToNextTrack();
+  });
+
+  audioElement.addEventListener('error', () => {
+    // eslint-disable-next-line no-console
+    console.warn('Não foi possível carregar a música ambiente. Tentando a próxima faixa.');
+
+    if (playlist.length > 1) {
+      advanceToNextTrack();
+      return;
+    }
+
+    soundEnabled = false;
+    writeStoredValue(musicStorageKeys.enabled, false);
+    updatePlayerState();
+    setMessage('info', 'Não foi possível carregar a música ambiente.');
+  });
+
+  if (playlist.length > 0) {
+    const firstTrack = playlist[activeTrackIndex];
+    audioElement.src = firstTrack ? getTrackSource(firstTrack.fileName) : '';
+    audioElement.volume = clampVolume(activeVolume);
+    audioElement.loop = isLoopEnabled;
+    audioElement.load();
+  }
+
+  updatePlayerState();
 
   const accessCodeErrorMessages = {
     ACCESS_CODE_EMPTY: 'Informe o código de acesso.',
@@ -279,16 +804,149 @@ export function createAuthScreen() {
     field.parentElement?.appendChild(error);
   };
 
-  soundToggle.addEventListener('click', () => {
-    soundEnabled = !soundEnabled;
-    soundToggle.textContent = `Som: ${soundEnabled ? 'on' : 'off'}`;
-    setMessage(
-      'info',
-      soundEnabled
-        ? 'Ambiente sonoro ativado. Será conectado em uma próxima etapa.'
-        : 'Ambiente sonoro pausado. Preparado para futuras trilhas.'
-    );
+  soundToggle.addEventListener('click', async () => {
+    if (!playlist.length) {
+      setMessage('info', 'Não foi possível carregar a música ambiente.');
+      return;
+    }
+
+    if (isMinimized) {
+      isMinimized = false;
+      writeStoredValue(musicStorageKeys.minimized, false);
+
+      if (!audioElement.src) {
+        applyCurrentTrack({ autoPlay: false });
+      }
+
+      updatePlayerState();
+      return;
+    }
+
+    isMinimized = true;
+    writeStoredValue(musicStorageKeys.minimized, true);
+    updatePlayerState();
   });
+
+  musicPlayerClose.addEventListener('click', () => {
+    isMinimized = true;
+    writeStoredValue(musicStorageKeys.minimized, true);
+    updatePlayerState();
+  });
+
+  musicPlayToggle.addEventListener('click', async () => {
+    if (!playlist.length) {
+      setMessage('info', 'Não foi possível carregar a música ambiente.');
+      return;
+    }
+
+    if (soundEnabled && !audioElement.paused) {
+      pauseCurrentTrack();
+      return;
+    }
+
+    if (!audioElement.src) {
+      applyCurrentTrack({ autoPlay: true });
+      return;
+    }
+
+    await playCurrentTrack();
+  });
+
+  musicPreviousButton.addEventListener('click', () => {
+    if (!playlist.length) {
+      return;
+    }
+
+    activeTrackIndex = getPreviousTrackIndex(activeTrackIndex, playlist.length);
+    applyCurrentTrack({ autoPlay: soundEnabled });
+  });
+
+  musicNextButton.addEventListener('click', () => {
+    if (!playlist.length) {
+      return;
+    }
+
+    activeTrackIndex = getNextTrackIndex(activeTrackIndex, playlist.length);
+    applyCurrentTrack({ autoPlay: soundEnabled });
+  });
+
+  musicMuteToggle.addEventListener('click', () => {
+    isVolumePopoverOpen = !isVolumePopoverOpen;
+    updatePlayerState();
+  });
+
+  app.addEventListener('click', (event) => {
+    const clickedInsidePlayer = musicPlayer.contains(event.target);
+    const clickedMuteButton = event.target.closest('.music-mute-toggle');
+    const clickedVolumeSlider = event.target.closest('.music-volume-slider');
+
+    if (!clickedInsidePlayer || clickedMuteButton || clickedVolumeSlider) {
+      return;
+    }
+
+    if (isVolumePopoverOpen) {
+      isVolumePopoverOpen = false;
+      updatePlayerState();
+    }
+  });
+
+  musicVolumeSlider.addEventListener('input', (event) => {
+    activeVolume = clampVolume(event.target.value);
+    lastVolumeBeforeMute = activeVolume > 0 ? activeVolume : lastVolumeBeforeMute;
+    audioElement.volume = clampVolume(activeVolume);
+    writeStoredValue(musicStorageKeys.volume, activeVolume);
+    updatePlayerState();
+  });
+
+  musicProgress.addEventListener('input', (event) => {
+    const totalDuration = Number.isFinite(audioElement.duration) ? audioElement.duration : 0;
+
+    if (totalDuration <= 0) {
+      return;
+    }
+
+    audioElement.currentTime = (Number(event.target.value) / 100) * totalDuration;
+    updatePlayerState();
+  });
+
+  musicLoopToggle.addEventListener('click', () => {
+    isLoopEnabled = !isLoopEnabled;
+    audioElement.loop = isLoopEnabled;
+    writeStoredValue(musicStorageKeys.loop, isLoopEnabled);
+    updatePlayerState();
+  });
+
+  if (musicLibraryToggle) {
+    musicLibraryToggle.addEventListener('click', () => {
+      isLibraryOpen = !isLibraryOpen;
+      syncLibraryState();
+    });
+  }
+
+  musicTrackSelect.addEventListener('change', (event) => {
+    activeTrackIndex = Number(event.target.value);
+    writeStoredValue(musicStorageKeys.track, activeTrackIndex);
+    applyCurrentTrack({ autoPlay: soundEnabled });
+  });
+
+  musicTrackList.addEventListener('click', (event) => {
+    const trackButton = event.target.closest('[data-track-index]');
+
+    if (!trackButton) {
+      return;
+    }
+
+    activeTrackIndex = Number(trackButton.dataset.trackIndex);
+    writeStoredValue(musicStorageKeys.track, activeTrackIndex);
+    applyCurrentTrack({ autoPlay: soundEnabled });
+  });
+
+  if (musicTrackSearch) {
+    musicTrackSearch.addEventListener('input', (event) => {
+      trackSearchQuery = event.target.value.trim();
+      updateTrackList();
+    });
+  }
 
   app.querySelector('.switch-to-signup').addEventListener('click', () => {
     setMessage('info', 'A autenticação Firebase será conectada em uma próxima etapa.');
