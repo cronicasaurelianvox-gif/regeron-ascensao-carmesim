@@ -39,212 +39,214 @@ export function createAdventureHub(options = {}) {
   const level = Number.isFinite(options.level) ? options.level : 12;
   const realm = options.realm || 'Reino Mortal';
   const progress = clamp(Number(options.progress ?? 82) || 82, 0, 100);
-  const objective = options.objective || 'DERROTAR LILITH';
 
-  const recentEvents = options.events ?? [
-    '⚔ Você derrotou um Guardião',
-    '◆ Você recebeu 250 Fragmentos',
-    '★ Seu personagem alcançou o Nível 12',
-    '⚡ Um novo acontecimento foi revelado'
-  ];
+  const ensureMusicPlayerPresence = () => {
+    const existingMusicPlayer = app.querySelector('.music-player-shell');
+    if (existingMusicPlayer) {
+      return;
+    }
+
+    const fallbackShell = document.createElement('div');
+    fallbackShell.className = 'music-player-shell';
+    fallbackShell.setAttribute('aria-live', 'polite');
+    fallbackShell.innerHTML = `
+      <button class="sound-toggle" type="button" aria-label="Abrir player de música" title="Abrir player de música">
+        ♫
+      </button>
+      <div class="music-player" role="dialog" aria-label="Player de trilha sonora" aria-expanded="false">
+        <div class="music-player-header">
+          <span class="music-player-kicker">TRILHA SONORA</span>
+          <div class="music-player-header-actions">
+            <button type="button" class="music-icon-button music-mute-toggle" aria-label="Abrir ajuste de volume" title="Abrir ajuste de volume">
+              <svg class="music-volume-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" role="img">
+                <path d="M3 10h4l5-4v12l-5-4H3z" fill="#f3e4c2" opacity="0.95" />
+                <path d="M14.8 9.2c1.1 0.9 1.7 2.1 1.7 3.3s-0.6 2.4-1.7 3.3" fill="none" stroke="#f3e4c2" stroke-width="1.5" stroke-linecap="round" />
+                <path d="M17.7 6.8c2 1.5 3.3 3.4 3.3 5.7s-1.3 4.2-3.3 5.7" fill="none" stroke="#f3e4c2" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="music-player-body">
+          <div class="music-player-track">
+            <span class="music-player-status">Pausada</span>
+            <strong class="music-player-track-name">Sem faixa</strong>
+          </div>
+        </div>
+      </div>
+    `;
+
+    app.appendChild(fallbackShell);
+  };
 
   app.innerHTML = `
     <div class="adventure-scene adventure-hub" aria-label="Central de aventura do jogador">
       <div class="adventure-page">
         <header class="hub-header">
           <div class="hub-brand" aria-label="Logo do jogo">
-            <span class="hub-brand__crest" aria-hidden="true">R</span>
+            <span class="hub-brand__crest" aria-hidden="true">✦</span>
             <div class="hub-brand__text">
-              <p class="eyebrow">RE:GERON</p>
-              <h1>ASCENSÃO CARMESIM</h1>
+              <span class="hub-brand__title">Re:Dungeon</span>
             </div>
           </div>
 
-          <div class="hub-user" aria-label="Dados do jogador">
+          <div class="hub-user" aria-label="Identidade do jogador">
             <div class="hub-avatar" aria-hidden="true">${displayName.charAt(0).toUpperCase() || 'K'}</div>
             <div class="hub-user__meta">
-              <strong>${displayName}</strong>
-              <span>Nível ${level}</span>
+              <strong>${displayName === 'Kael' ? 'DivinoBagre' : displayName}</strong>
+              <span>Nv. ${level}</span>
             </div>
-            <button type="button" class="hub-icon-button" aria-label="Configurações da conta">
-              ⚙
-            </button>
-            <button type="button" class="hub-logout" aria-label="Sair do reino">Sair</button>
+          </div>
+
+          <div class="hub-header__actions">
+            <button type="button" class="hub-menu-button" aria-label="Abrir menu do jogador">MENU</button>
+            <button type="button" class="hub-logout" aria-label="Sair da sessão">SAIR</button>
           </div>
         </header>
 
-        <main class="hub-layout">
-          <section class="hero-panel" aria-label="Resumo do personagem">
-            <div class="hero-copy">
-              <p class="panel-kicker">BEM-VINDO AO REINO</p>
-              <h2>Seu próximo destino aguarda.</h2>
-              <div class="hero-identity">
-                <span class="hero-name">${displayName}</span>
-                <span class="hero-level">Nível ${level}</span>
-              </div>
-              <div class="hero-meta">
-                <span>Reino atual</span>
-                <strong>${realm}</strong>
-              </div>
-              <div class="hero-meta">
-                <span>Experiência</span>
-                <strong>${progress}%</strong>
-              </div>
-              <div class="xp-bar" aria-label="Progresso de experiência">
-                <span style="width: ${progress}%"></span>
-              </div>
-            </div>
-
-            <div class="hero-figure" aria-hidden="true">
-              <div class="hero-figure__silhouette">
-                <span>KAEL</span>
-              </div>
-            </div>
-          </section>
-
-          <section class="mode-grid" aria-label="Modos de jogo">
-            <article class="mode-card mode-adventure">
+        <main class="hub-main">
+          <section class="hub-main-left" aria-label="Modos de jogo">
+            <article class="mode-card mode-card--featured" aria-label="Modo de campanha principal">
               <div class="mode-card__header">
-                <span class="mode-icon" aria-hidden="true">⚔</span>
+                <span class="mode-icon" aria-hidden="true">✦</span>
                 <div>
                   <p class="mode-name">AVENTURA</p>
                   <small>Campanha principal</small>
                 </div>
               </div>
-              <p class="mode-tagline">Percorra o caminho destinado a você.</p>
-              <p class="mode-description">
-                Avance pela campanha, enfrente inimigos, descubra acontecimentos e aproxime-se do confronto contra Lilith.
-              </p>
-              <div class="mode-progress">
-                <span>Progresso da campanha</span>
-                <strong>74%</strong>
+
+              <div class="mode-card__body">
+                <p class="mode-subtitle">Ascensão Carmesim</p>
+                <div class="mode-progress-row">
+                  <span>Progresso da campanha</span>
+                  <strong>74%</strong>
+                </div>
+                <div class="xp-bar" aria-label="Progresso da campanha">
+                  <span style="width: 74%"></span>
+                </div>
               </div>
+
               <button type="button" class="hub-action-button">CONTINUAR AVENTURA</button>
             </article>
 
-            <article class="mode-card mode-quick">
-              <div class="mode-card__header">
-                <span class="mode-icon" aria-hidden="true">⚡</span>
-                <div>
-                  <p class="mode-name">PARTIDA RÁPIDA</p>
-                  <small>Rápida e intensa</small>
+            <div class="mode-grid" aria-label="Modos secundários">
+              <article class="mode-card mode-card--quick" aria-label="Partida rápida">
+                <div class="mode-card__header">
+                  <span class="mode-icon" aria-hidden="true">⚔</span>
+                  <div>
+                    <p class="mode-name">PARTIDA RÁPIDA</p>
+                    <small>Encontros e progressão</small>
+                  </div>
                 </div>
-              </div>
-              <p class="mode-tagline">Entre. Enfrente. Recolha. Evolua.</p>
-              <p class="mode-description">
-                Uma experiência rápida focada em encontros, recursos e progressão.
-              </p>
-              <div class="mode-progress">
-                <span>Recompensas</span>
-                <strong>+250 Fragmentos</strong>
-              </div>
-              <button type="button" class="hub-action-button secondary">INICIAR PARTIDA</button>
-            </article>
 
-            <article class="mode-card mode-challenge is-disabled">
-              <div class="mode-card__header">
-                <span class="mode-icon" aria-hidden="true">🏆</span>
-                <div>
-                  <p class="mode-name">DESAFIO</p>
-                  <small>Prova de resistência</small>
+                <div class="mode-card__body">
+                  <p class="mode-award">+250 Fragmentos</p>
                 </div>
-              </div>
-              <p class="mode-tagline">Prove até onde consegue chegar.</p>
-              <p class="mode-description">
-                Enfrente condições especiais e desafios únicos.
-              </p>
-              <div class="mode-status">EM DESENVOLVIMENTO</div>
-              <button type="button" class="hub-action-button muted" disabled>PRÓXIMO DESAFIO</button>
-            </article>
+
+                <button type="button" class="hub-action-button hub-action-button--secondary">INICIAR PARTIDA</button>
+              </article>
+
+              <article class="mode-card mode-card--challenge is-disabled" aria-label="Modo de desafio">
+                <div class="mode-card__header">
+                  <span class="mode-icon" aria-hidden="true">✧</span>
+                  <div>
+                    <p class="mode-name">DESAFIO</p>
+                    <small>Prova especial</small>
+                  </div>
+                </div>
+
+                <div class="mode-card__body">
+                  <div class="mode-status">EM DESENVOLVIMENTO</div>
+                </div>
+
+                <button type="button" class="hub-action-button hub-action-button--muted" disabled>PRÓXIMO DESAFIO</button>
+              </article>
+            </div>
           </section>
 
-          <div class="hub-lower-grid">
-            <section class="panel cardflux-panel" aria-label="Próximo CardFlux">
-              <div class="panel-header">
-                <p class="panel-kicker">CARDFLUX</p>
-                <span>O destino é revelado carta por carta.</span>
+          <aside class="character-card" aria-label="Resumo do personagem">
+            <div class="character-card__header">PERSONAGEM</div>
+            <div class="character-portrait" aria-hidden="true">
+              <div class="character-portrait__frame">
+                <span>KAEL</span>
+              </div>
+            </div>
+
+            <div class="character-card__body">
+              <h2>KAEL</h2>
+              <p class="character-meta">Nível ${level}</p>
+              <p class="character-title">Guardião Carmesim</p>
+              <p class="character-realm">${realm}</p>
+
+              <div class="character-xp-row">
+                <span>Experiência</span>
+                <strong>${progress}%</strong>
+              </div>
+              <div class="xp-bar character-bar" aria-label="Experiência do personagem">
+                <span style="width: ${progress}%"></span>
               </div>
 
-              <div class="cardflux-card" aria-label="Carta de CardFlux revelada parcialmente">
-                <div class="cardflux-card__inner">
-                  <span class="cardflux-mark">✦</span>
-                  <strong>Próximo acontecimento</strong>
-                  <div class="cardflux-symbol">?</div>
-                  <small>???</small>
+              <button type="button" class="hub-action-button hub-action-button--character">VER PERSONAGEM</button>
+            </div>
+          </aside>
+
+          <section class="objectives-panel" aria-label="Objetivos do jogador">
+            <div class="panel-header">
+              <p class="panel-kicker">OBJETIVOS</p>
+            </div>
+
+            <div class="objectives-grid">
+              <article class="objective-item">
+                <div class="objective-item__head">
+                  <span class="objective-item__icon" aria-hidden="true">✦</span>
+                  <div>
+                    <h3>Derrotar Lilith</h3>
+                    <small>Objetivo principal</small>
+                  </div>
                 </div>
-              </div>
-
-              <button type="button" class="hub-action-button cardflux-button">ENTRAR NO CARDFLUX</button>
-            </section>
-
-            <aside class="panel progress-panel" aria-label="Painel de progressão">
-              <div class="panel-header compact">
-                <p class="panel-kicker">PROGRESSÃO</p>
-              </div>
-
-              <div class="progress-grid">
-                <div class="progress-tile">
-                  <span>Nível</span>
-                  <strong>${level}</strong>
+                <div class="objective-progress">
+                  <span>Progresso</span>
+                  <strong>58%</strong>
                 </div>
-                <div class="progress-tile">
-                  <span>Reino</span>
-                  <strong>${realm}</strong>
+                <div class="xp-bar objective-bar" aria-label="Progresso do objetivo Derrotar Lilith">
+                  <span style="width: 58%"></span>
                 </div>
-                <div class="progress-tile">
-                  <span>Experiência</span>
-                  <strong>${progress}%</strong>
+              </article>
+
+              <article class="objective-item">
+                <div class="objective-item__head">
+                  <span class="objective-item__icon" aria-hidden="true">✧</span>
+                  <div>
+                    <h3>Dominar o poder Carmesim</h3>
+                    <small>Objetivo do personagem</small>
+                  </div>
                 </div>
-                <div class="progress-tile">
-                  <span>Recursos</span>
-                  <strong>2.480</strong>
+                <div class="objective-progress">
+                  <span>Progresso</span>
+                  <strong>2/3</strong>
                 </div>
-                <div class="progress-tile">
-                  <span>Vitórias</span>
-                  <strong>37</strong>
+                <div class="xp-bar objective-bar" aria-label="Progresso do objetivo Dominar o poder Carmesim">
+                  <span style="width: 67%"></span>
                 </div>
-                <div class="progress-tile">
-                  <span>Campanha</span>
-                  <strong>74%</strong>
+              </article>
+
+              <article class="objective-item">
+                <div class="objective-item__head">
+                  <span class="objective-item__icon" aria-hidden="true">◆</span>
+                  <div>
+                    <h3>Alcançar o nível 13</h3>
+                    <small>Próximo marco</small>
+                  </div>
                 </div>
-              </div>
-            </aside>
-          </div>
-
-          <div class="hub-lower-grid secondary-grid">
-            <section class="panel objective-panel" aria-label="Objetivo atual">
-              <div class="panel-header compact">
-                <p class="panel-kicker">OBJETIVO ATUAL</p>
-              </div>
-
-              <h3>${objective}</h3>
-              <p>Avance pelo caminho da Ascensão Carmesim e prepare-se para o confronto.</p>
-
-              <div class="objective-progress">
-                <span>PROGRESSO DA AVENTURA</span>
-                <strong>58%</strong>
-              </div>
-              <div class="xp-bar small" aria-label="Progresso do objetivo atual">
-                <span style="width: 58%"></span>
-              </div>
-            </section>
-
-            <section class="panel events-panel" aria-label="Últimos acontecimentos">
-              <div class="panel-header compact">
-                <p class="panel-kicker">ÚLTIMOS ACONTECIMENTOS</p>
-              </div>
-
-              <ul class="event-list">
-                ${recentEvents
-                  .map(
-                    (event) => `
-                    <li>${event}</li>
-                  `
-                  )
-                  .join('')}
-              </ul>
-            </section>
-          </div>
+                <div class="objective-progress">
+                  <span>Progresso</span>
+                  <strong>12%</strong>
+                </div>
+                <div class="xp-bar objective-bar" aria-label="Progresso do objetivo Alcançar o nível 13">
+                  <span style="width: 12%"></span>
+                </div>
+              </article>
+            </div>
+          </section>
         </main>
       </div>
     </div>
@@ -267,6 +269,20 @@ export function createAdventureHub(options = {}) {
     generatedMusicPlayer?.remove();
     app.prepend(preservedMusicPlayer);
   }
+
+  ensureMusicPlayerPresence();
+
+  const finalMusicPlayerShell = app.querySelector('.music-player-shell') || preservedMusicPlayer;
+  const finalSoundToggle = app.querySelector('.sound-toggle') || preservedSoundToggle;
+
+  finalMusicPlayerShell?.classList.add('is-minimized');
+  finalMusicPlayerShell?.setAttribute('aria-hidden', 'true');
+  if (finalMusicPlayerShell?.querySelector('.music-player')) {
+    finalMusicPlayerShell.querySelector('.music-player').hidden = true;
+    finalMusicPlayerShell.querySelector('.music-player').setAttribute('aria-expanded', 'false');
+  }
+
+  finalSoundToggle?.setAttribute('aria-label', 'Abrir player de música');
 
   return app;
 }
