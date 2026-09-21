@@ -39,6 +39,41 @@ export function createAdventureHub(options = {}) {
   const level = Number.isFinite(options.level) ? options.level : 12;
   const realm = options.realm || 'Reino Mortal';
   const progress = clamp(Number(options.progress ?? 82) || 82, 0, 100);
+  const formatResourceValue = (value) => {
+    const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+    return new Intl.NumberFormat('pt-BR').format(safeValue);
+  };
+  const rokmasValue = Number(player.rokmas ?? player.rokmasCount ?? 0) || 0;
+  const fragmentosValue = Number(player.fragmentos ?? player.fragmentosCount ?? 0) || 0;
+
+  const getMenuPopupPosition = (menuButton, menuPopup) => {
+    const buttonRect = menuButton.getBoundingClientRect();
+    const popupWidth = menuPopup.offsetWidth || 240;
+    const popupHeight = menuPopup.offsetHeight || 420;
+    const gap = 14;
+    const margin = 12;
+
+    let left = buttonRect.right + gap;
+    let top = buttonRect.top;
+
+    if (left + popupWidth > window.innerWidth - margin) {
+      left = buttonRect.left - popupWidth - gap;
+    }
+
+    if (left < margin) {
+      left = margin;
+    }
+
+    if (top + popupHeight > window.innerHeight - margin) {
+      top = Math.max(margin, window.innerHeight - popupHeight - margin);
+    }
+
+    if (top < margin) {
+      top = margin;
+    }
+
+    return { left, top };
+  };
 
   const ensureMusicPlayerPresence = () => {
     const existingMusicPlayer = app.querySelector('.music-player-shell');
@@ -57,13 +92,31 @@ export function createAdventureHub(options = {}) {
         <div class="music-player-header">
           <span class="music-player-kicker">TRILHA SONORA</span>
           <div class="music-player-header-actions">
-            <button type="button" class="music-icon-button music-mute-toggle" aria-label="Abrir ajuste de volume" title="Abrir ajuste de volume">
-              <svg class="music-volume-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" role="img">
-                <path d="M3 10h4l5-4v12l-5-4H3z" fill="#f3e4c2" opacity="0.95" />
-                <path d="M14.8 9.2c1.1 0.9 1.7 2.1 1.7 3.3s-0.6 2.4-1.7 3.3" fill="none" stroke="#f3e4c2" stroke-width="1.5" stroke-linecap="round" />
-                <path d="M17.7 6.8c2 1.5 3.3 3.4 3.3 5.7s-1.3 4.2-3.3 5.7" fill="none" stroke="#f3e4c2" stroke-width="1.5" stroke-linecap="round" />
-              </svg>
+            <button type="button" class="music-loop-toggle" aria-label="Ativar loop" title="Ativar loop" aria-pressed="false">
+              <span aria-hidden="true">↻</span>
             </button>
+            <div class="music-volume-anchor">
+              <button type="button" class="music-icon-button music-mute-toggle music-header-mute-toggle" aria-label="Abrir ajuste de volume" title="Abrir ajuste de volume">
+                <svg class="music-volume-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" role="img">
+                  <path d="M3 10h4l5-4v12l-5-4H3z" fill="#f3e4c2" opacity="0.95" />
+                  <path d="M14.8 9.2c1.1 0.9 1.7 2.1 1.7 3.3s-0.6 2.4-1.7 3.3" fill="none" stroke="#f3e4c2" stroke-width="1.5" stroke-linecap="round" />
+                  <path d="M17.7 6.8c2 1.5 3.3 3.4 3.3 5.7s-1.3 4.2-3.3 5.7" fill="none" stroke="#f3e4c2" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+              </button>
+              <div class="music-volume-popover" aria-hidden="true">
+                <div class="music-volume-popover-inner">
+                  <input class="music-volume-slider" type="range" min="0" max="1" step="0.01" value="0.25" aria-label="Volume" />
+                  <span class="music-volume-value">25%</span>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="music-icon-button music-library-toggle music-header-library-toggle" aria-label="Abrir biblioteca de músicas" title="Biblioteca" aria-expanded="false">
+              <span aria-hidden="true">☰</span>
+            </button>
+            <button type="button" class="music-icon-button music-bg-toggle" aria-label="Permitir reprodução em segundo plano" title="Permitir reprodução em segundo plano" aria-pressed="true">
+              ⤴
+            </button>
+            <button class="music-player-close" type="button" aria-label="Minimizar player" title="Minimizar player">−</button>
           </div>
         </div>
         <div class="music-player-body">
@@ -89,19 +142,112 @@ export function createAdventureHub(options = {}) {
             </div>
           </div>
 
-          <div class="hub-user" aria-label="Identidade do jogador">
-            <div class="hub-avatar" aria-hidden="true">${displayName.charAt(0).toUpperCase() || 'K'}</div>
-            <div class="hub-user__meta">
-              <strong>${displayName === 'Kael' ? 'DivinoBagre' : displayName}</strong>
-              <span>Nv. ${level}</span>
-            </div>
-          </div>
+          <div class="hub-header__actions" aria-label="Ações e recursos do jogador ${displayName}">
+            <div class="hub-resources" aria-label="Recursos do jogador">
+              <div class="hub-resource" aria-label="Rokmas do jogador">
+                <img
+                  class="hub-resource__icon"
+                  src="https://i.imgur.com/S7tkY53.jpeg"
+                  alt="Rokmas"
+                  loading="lazy"
+                />
+                <span class="hub-resource__meta">
+                  <span class="hub-resource__name">Rokmas</span>
+                  <span class="hub-resource__value">${formatResourceValue(rokmasValue)}</span>
+                </span>
+              </div>
 
-          <div class="hub-header__actions">
+              <div class="hub-resource" aria-label="Fragmentos do jogador">
+                <img
+                  class="hub-resource__icon"
+                  src="https://i.imgur.com/cD0xlNv.jpeg"
+                  alt="Fragmentos"
+                  loading="lazy"
+                />
+                <span class="hub-resource__meta">
+                  <span class="hub-resource__name">Fragmentos</span>
+                  <span class="hub-resource__value">${formatResourceValue(fragmentosValue)}</span>
+                </span>
+              </div>
+            </div>
+
             <button type="button" class="hub-menu-button" aria-label="Abrir menu do jogador">MENU</button>
-            <button type="button" class="hub-logout" aria-label="Sair da sessão">SAIR</button>
           </div>
         </header>
+
+        <div class="hub-menu-popup" aria-label="Menu do jogador" hidden>
+          <div class="hub-menu-popup__inner">
+            <div class="hub-menu-section">
+              <span class="hub-menu-section__title">PERSONAGEM</span>
+              <button type="button" class="hub-menu-item">
+                <span class="hub-menu-item__icon" aria-hidden="true">◈</span>
+                <span class="hub-menu-item__label">Meus Personagens</span>
+                <span class="hub-menu-item__arrow" aria-hidden="true">›</span>
+              </button>
+              <button type="button" class="hub-menu-item">
+                <span class="hub-menu-item__icon" aria-hidden="true">▣</span>
+                <span class="hub-menu-item__label">Inventário</span>
+                <span class="hub-menu-item__arrow" aria-hidden="true">›</span>
+              </button>
+            </div>
+
+            <div class="hub-menu-section">
+              <span class="hub-menu-section__title">PROGRESSÃO</span>
+              <button type="button" class="hub-menu-item">
+                <span class="hub-menu-item__icon" aria-hidden="true">◆</span>
+                <span class="hub-menu-item__label">Conquistas</span>
+                <span class="hub-menu-item__arrow" aria-hidden="true">›</span>
+              </button>
+              <button type="button" class="hub-menu-item">
+                <span class="hub-menu-item__icon" aria-hidden="true">◎</span>
+                <span class="hub-menu-item__label">Objetivos</span>
+                <span class="hub-menu-item__arrow" aria-hidden="true">›</span>
+              </button>
+            </div>
+
+            <div class="hub-menu-section">
+              <span class="hub-menu-section__title">MUNDO</span>
+              <button type="button" class="hub-menu-item">
+                <span class="hub-menu-item__icon" aria-hidden="true">◇</span>
+                <span class="hub-menu-item__label">Mapa</span>
+                <span class="hub-menu-item__arrow" aria-hidden="true">›</span>
+              </button>
+              <button type="button" class="hub-menu-item">
+                <span class="hub-menu-item__icon" aria-hidden="true">▤</span>
+                <span class="hub-menu-item__label">Crônicas</span>
+                <span class="hub-menu-item__arrow" aria-hidden="true">›</span>
+              </button>
+            </div>
+
+            <div class="hub-menu-section">
+              <span class="hub-menu-section__title">ECONOMIA</span>
+              <button type="button" class="hub-menu-item">
+                <span class="hub-menu-item__icon" aria-hidden="true">◈</span>
+                <span class="hub-menu-item__label">Loja</span>
+                <span class="hub-menu-item__arrow" aria-hidden="true">›</span>
+              </button>
+            </div>
+
+            <div class="hub-menu-section">
+              <span class="hub-menu-section__title">SISTEMA</span>
+              <button type="button" class="hub-menu-item">
+                <span class="hub-menu-item__icon" aria-hidden="true">⚙</span>
+                <span class="hub-menu-item__label">Configurações</span>
+                <span class="hub-menu-item__arrow" aria-hidden="true">›</span>
+              </button>
+              <button type="button" class="hub-menu-item">
+                <span class="hub-menu-item__icon" aria-hidden="true">?</span>
+                <span class="hub-menu-item__label">Ajuda</span>
+                <span class="hub-menu-item__arrow" aria-hidden="true">›</span>
+              </button>
+            </div>
+
+            <button type="button" class="hub-menu-item hub-menu-item--danger hub-logout" aria-label="Sair da sessão">
+              <span class="hub-menu-item__icon" aria-hidden="true">↪</span>
+              <span class="hub-menu-item__label">SAIR</span>
+            </button>
+          </div>
+        </div>
 
         <main class="hub-main">
           <section class="hub-main-left" aria-label="Modos de jogo">
@@ -165,10 +311,8 @@ export function createAdventureHub(options = {}) {
 
           <aside class="character-card" aria-label="Resumo do personagem">
             <div class="character-card__header">PERSONAGEM</div>
-            <div class="character-portrait" aria-hidden="true">
-              <div class="character-portrait__frame">
-                <span>KAEL</span>
-              </div>
+            <div class="character-portrait" aria-label="Retrato do personagem Kael">
+              <div class="character-portrait__frame" aria-hidden="true"></div>
             </div>
 
             <div class="character-card__body">
@@ -252,9 +396,71 @@ export function createAdventureHub(options = {}) {
     </div>
   `;
 
+  const menuButton = app.querySelector('.hub-menu-button');
+  const menuPopup = app.querySelector('.hub-menu-popup');
   const logoutButton = app.querySelector('.hub-logout');
+
+  const closeMenuPopup = () => {
+    menuPopup?.classList.remove('is-open');
+    menuPopup?.setAttribute('hidden', 'hidden');
+  };
+
+  const openMenuPopup = () => {
+    if (!menuButton || !menuPopup) {
+      return;
+    }
+
+    const { left, top } = getMenuPopupPosition(menuButton, menuPopup);
+    menuPopup.style.position = 'fixed';
+    menuPopup.style.left = `${left}px`;
+    menuPopup.style.top = `${top}px`;
+    menuPopup.hidden = false;
+    menuPopup.classList.add('is-open');
+    menuPopup.removeAttribute('hidden');
+  };
+
+  menuButton?.addEventListener('click', (event) => {
+    event.stopPropagation();
+
+    if (menuPopup?.classList.contains('is-open')) {
+      closeMenuPopup();
+      return;
+    }
+
+    openMenuPopup();
+  });
+
+  menuPopup?.querySelectorAll('.hub-menu-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      closeMenuPopup();
+    });
+  });
+
   logoutButton?.addEventListener('click', () => {
+    closeMenuPopup();
     createAuthScreen();
+  });
+
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!target || typeof target !== 'object' || typeof target.closest !== 'function') {
+      return;
+    }
+
+    if (!menuPopup || !menuButton) {
+      return;
+    }
+
+    const clickedInsideMenu = menuPopup.contains(target) || menuButton.contains(target);
+    if (!clickedInsideMenu) {
+      closeMenuPopup();
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if (menuPopup?.classList.contains('is-open')) {
+      openMenuPopup();
+    }
   });
 
   const generatedSoundToggle = app.querySelector('.sound-toggle');

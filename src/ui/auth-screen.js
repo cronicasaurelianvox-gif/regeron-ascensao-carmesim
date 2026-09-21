@@ -924,7 +924,7 @@ export function createAuthScreen() {
     musicPlayer && musicPlayer.dataset && musicPlayer.dataset.regeronUiBound === '1';
 
   if (!alreadyUiBound) {
-    soundToggle.addEventListener('click', async () => {
+    soundToggle?.addEventListener('click', async () => {
       if (!playlist.length) {
         setMessage('info', 'Não foi possível carregar a música ambiente.');
         return;
@@ -947,13 +947,13 @@ export function createAuthScreen() {
       updatePlayerState();
     });
 
-    musicPlayerClose.addEventListener('click', () => {
+    musicPlayerClose?.addEventListener('click', () => {
       isMinimized = true;
       writeStoredValue(musicStorageKeys.minimized, true);
       updatePlayerState();
     });
 
-    musicPlayToggle.addEventListener('click', async () => {
+    musicPlayToggle?.addEventListener('click', async () => {
       if (!playlist.length) {
         setMessage('info', 'Não foi possível carregar a música ambiente.');
         return;
@@ -972,7 +972,7 @@ export function createAuthScreen() {
       await playCurrentTrack();
     });
 
-    musicPreviousButton.addEventListener('click', () => {
+    musicPreviousButton?.addEventListener('click', () => {
       if (!playlist.length) {
         return;
       }
@@ -981,7 +981,7 @@ export function createAuthScreen() {
       applyCurrentTrack({ autoPlay: soundEnabled });
     });
 
-    musicNextButton.addEventListener('click', () => {
+    musicNextButton?.addEventListener('click', () => {
       if (!playlist.length) {
         return;
       }
@@ -990,7 +990,7 @@ export function createAuthScreen() {
       applyCurrentTrack({ autoPlay: soundEnabled });
     });
 
-    musicMuteToggle.addEventListener('click', () => {
+    musicMuteToggle?.addEventListener('click', () => {
       isVolumePopoverOpen = !isVolumePopoverOpen;
       updatePlayerState();
     });
@@ -1010,7 +1010,7 @@ export function createAuthScreen() {
       }
     });
 
-    musicVolumeSlider.addEventListener('input', (event) => {
+    musicVolumeSlider?.addEventListener('input', (event) => {
       activeVolume = clampVolume(event.target.value);
       lastVolumeBeforeMute = activeVolume > 0 ? activeVolume : lastVolumeBeforeMute;
       audioElement.volume = clampVolume(activeVolume);
@@ -1018,7 +1018,7 @@ export function createAuthScreen() {
       updatePlayerState();
     });
 
-    musicProgress.addEventListener('input', (event) => {
+    musicProgress?.addEventListener('input', (event) => {
       const totalDuration = Number.isFinite(audioElement.duration) ? audioElement.duration : 0;
 
       if (totalDuration <= 0) {
