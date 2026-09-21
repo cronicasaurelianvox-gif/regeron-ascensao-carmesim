@@ -240,7 +240,7 @@ describe('createAdventureHub', () => {
     app.remove();
   });
 
-  it('renderiza a central de aventura com os principais blocos do jogo', () => {
+  it('renderiza o hub com os blocos da referência visual e sem CardFlux na tela inicial', () => {
     const app = document.createElement('div');
     app.id = 'app';
     document.body.appendChild(app);
@@ -253,12 +253,17 @@ describe('createAdventureHub', () => {
       objective: 'DERROTAR LILITH'
     });
 
-    expect(app.innerHTML).toContain('RE:GERON');
-    expect(app.innerHTML).toContain('BEM-VINDO AO REINO');
+    expect(app.innerHTML).toContain('Re:Dungeon');
     expect(app.innerHTML).toContain('AVENTURA');
-    expect(app.innerHTML).toContain('CARDFLUX');
-    expect(app.innerHTML).toContain('OBJETIVO ATUAL');
+    expect(app.innerHTML).toContain('PARTIDA RÁPIDA');
+    expect(app.innerHTML).toContain('PERSONAGEM');
+    expect(app.innerHTML).toContain('OBJETIVOS');
+    expect(app.innerHTML).toContain('SAIR');
+    expect(app.innerHTML).not.toContain('CARDFLUX');
     expect(app.querySelector('.adventure-hub')).not.toBeNull();
+    expect(app.querySelector('.music-player-shell')).not.toBeNull();
+    expect(app.querySelector('.music-player-shell')?.classList.contains('is-minimized')).toBe(true);
+    expect(app.querySelector('.hub-logout')).not.toBeNull();
 
     app.remove();
   });
