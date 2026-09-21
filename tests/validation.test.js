@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
+import { getSharedAudioElement } from '../src/audio/shared-audio.js';
+import { musicPlaylist, getTrackSource } from '../src/audio/music-playlist.js';
 import { createAuthScreen, togglePasswordVisibility } from '../src/ui/auth-screen.js';
 import { createAdventureHub } from '../src/ui/adventure-hub.js';
 import { validateEmail, validateLoginForm, validateSignupForm } from '../src/ui/validation.js';
@@ -136,6 +138,28 @@ describe('createAuthScreen', () => {
 
     app.remove();
   });
+
+  it('avança para a próxima faixa quando a música termina com loop desativado', () => {
+    const app = document.createElement('div');
+    app.id = 'app';
+    document.body.appendChild(app);
+
+    expect(musicPlaylist.length).toBeGreaterThan(1);
+
+    createAuthScreen();
+
+    const audio = getSharedAudioElement();
+    audio.src = getTrackSource(musicPlaylist[0].fileName);
+    audio.load = vi.fn();
+
+    audio.dispatchEvent(new Event('play'));
+    audio.dispatchEvent(new Event('pause'));
+    audio.dispatchEvent(new Event('ended'));
+
+    expect(decodeURIComponent(audio.src)).toContain(musicPlaylist[1].fileName);
+
+    app.remove();
+  });
 });
 
 describe('createAdventureHub', () => {
@@ -205,7 +229,9 @@ describe('createAdventureHub', () => {
     document.body.appendChild(app);
 
     createAuthScreen();
-    const loadSpy = vi.spyOn(window.HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+    const loadSpy = vi
+      .spyOn(window.HTMLMediaElement.prototype, 'load')
+      .mockImplementation(() => {});
 
     createAuthScreen();
 
