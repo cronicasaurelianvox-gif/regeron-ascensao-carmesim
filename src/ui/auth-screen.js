@@ -7,22 +7,12 @@ import {
   musicPlaylist,
   getTrackSource
 } from '../audio/music-playlist.js';
+import { getSharedAudioElement, bindSharedAudioListeners } from '../audio/shared-audio.js';
 import { handleRegister, loginWithIdentifier, requestPasswordReset } from '../services/auth.js';
 import { createAdventureHub } from './adventure-hub.js';
 import { validateEmail, validateLoginForm, validateSignupForm } from './validation.js';
 
-let sharedAudioElement = null;
-let sharedAudioListenersBound = false;
 
-function getSharedAudioElement() {
-  if (!sharedAudioElement) {
-    sharedAudioElement = new Audio();
-    sharedAudioElement.loop = false;
-    sharedAudioElement.preload = 'auto';
-  }
-
-  return sharedAudioElement;
-}
 
 export function togglePasswordVisibility(input, shouldShow) {
   if (!input) {
@@ -694,28 +684,25 @@ export function createAuthScreen() {
     applyCurrentTrack({ autoPlay: soundEnabled });
   };
 
-  if (!sharedAudioListenersBound) {
-    audioElement.addEventListener('loadedmetadata', () => {
+  // Vincula listeners compartilhados uma única vez via singleton
+  bindSharedAudioListeners({
+    loadedmetadata: () => {
       updatePlayerState();
-    });
-
-    audioElement.addEventListener('timeupdate', () => {
+    },
+    timeupdate: () => {
       updatePlayerState();
-    });
-
-    audioElement.addEventListener('play', () => {
+    },
+    play: () => {
       soundEnabled = true;
       writeStoredValue(musicStorageKeys.enabled, true);
       updatePlayerState();
-    });
-
-    audioElement.addEventListener('pause', () => {
+    },
+    pause: () => {
       soundEnabled = false;
       writeStoredValue(musicStorageKeys.enabled, false);
       updatePlayerState();
-    });
-
-    audioElement.addEventListener('ended', () => {
+    },
+    ended: () => {
       if (!soundEnabled) {
         return;
       }
@@ -731,9 +718,8 @@ export function createAuthScreen() {
       }
 
       advanceToNextTrack();
-    });
-
-    audioElement.addEventListener('error', () => {
+    },
+    error: () => {
       // eslint-disable-next-line no-console
       console.warn('Não foi possível carregar a música ambiente. Tentando a próxima faixa.');
 
@@ -746,10 +732,26 @@ export function createAuthScreen() {
       writeStoredValue(musicStorageKeys.enabled, false);
       updatePlayerState();
       setMessage('info', 'Não foi possível carregar a música ambiente.');
-    });
+    }
+  });
 
-    sharedAudioListenersBound = true;
-  }
+  // Pausa o áudio quando o usuário sai da aba ou a página é descarregada.
+  // Evita que a música continue tocando sem controle quando o app perde foco.
+  const handleVisibilityPause = () => {
+    try {
+      if (document.hidden && !audioElement.paused) {
+        audioElement.pause();
+        soundEnabled = false;
+        writeStoredValue(musicStorageKeys.enabled, false);
+        updatePlayerState();
+      }
+    } catch (e) {
+      // silencioso — não deve quebrar a UI
+    }
+  };
+
+  document.addEventListener('visibilitychange', handleVisibilityPause);
+  window.addEventListener('pagehide', handleVisibilityPause);
 
   if (playlist.length > 0) {
     const firstTrack = playlist[activeTrackIndex];
@@ -862,7 +864,11 @@ export function createAuthScreen() {
     field.parentElement?.appendChild(error);
   };
 
-  soundToggle.addEventListener('click', async () => {
+  // Evita múltiplos bindings quando o player é preservado entre views.
+  const alreadyUiBound = musicPlayer && musicPlayer.dataset && musicPlayer.dataset.regeronUiBound === '1';
+
+  if (!alreadyUiBound) {
+    soundToggle.addEventListener('click', async () => {
     if (!playlist.length) {
       setMessage('info', 'Não foi possível carregar a música ambiente.');
       return;
@@ -1004,6 +1010,15 @@ export function createAuthScreen() {
       trackSearchQuery = event.target.value.trim();
       updateTrackList();
     });
+  }
+    // Marca que o player já recebeu os handlers UI.
+    try {
+      if (musicPlayer && musicPlayer.dataset) {
+        musicPlayer.dataset.regeronUiBound = '1';
+      }
+    } catch (e) {
+      // silencioso
+    }
   }
 
   app.querySelector('.switch-to-signup').addEventListener('click', () => {
