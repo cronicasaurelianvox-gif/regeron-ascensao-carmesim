@@ -31,6 +31,9 @@ export function createAdventureHub(options = {}) {
     return null;
   }
 
+  const preservedSoundToggle = app.querySelector('.sound-toggle');
+  const preservedMusicPlayer = app.querySelector('.music-player-shell');
+
   const player = options.player ?? {};
   const displayName = getDisplayName(player);
   const level = Number.isFinite(options.level) ? options.level : 12;
@@ -251,6 +254,19 @@ export function createAdventureHub(options = {}) {
   logoutButton?.addEventListener('click', () => {
     createAuthScreen();
   });
+
+  const generatedSoundToggle = app.querySelector('.sound-toggle');
+  const generatedMusicPlayer = app.querySelector('.music-player-shell');
+
+  if (preservedSoundToggle && preservedSoundToggle !== generatedSoundToggle) {
+    generatedSoundToggle?.remove();
+    app.prepend(preservedSoundToggle);
+  }
+
+  if (preservedMusicPlayer && preservedMusicPlayer !== generatedMusicPlayer) {
+    generatedMusicPlayer?.remove();
+    app.prepend(preservedMusicPlayer);
+  }
 
   return app;
 }

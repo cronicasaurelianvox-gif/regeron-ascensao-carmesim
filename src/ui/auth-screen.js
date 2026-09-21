@@ -11,6 +11,19 @@ import { handleRegister, loginWithIdentifier, requestPasswordReset } from '../se
 import { createAdventureHub } from './adventure-hub.js';
 import { validateEmail, validateLoginForm, validateSignupForm } from './validation.js';
 
+let sharedAudioElement = null;
+let sharedAudioListenersBound = false;
+
+function getSharedAudioElement() {
+  if (!sharedAudioElement) {
+    sharedAudioElement = new Audio();
+    sharedAudioElement.loop = false;
+    sharedAudioElement.preload = 'auto';
+  }
+
+  return sharedAudioElement;
+}
+
 export function togglePasswordVisibility(input, shouldShow) {
   if (!input) {
     return null;
@@ -48,6 +61,9 @@ export function createAuthScreen() {
   if (!app) {
     return null;
   }
+
+  const preservedSoundToggle = app.querySelector('.sound-toggle');
+  const preservedMusicPlayer = app.querySelector('.music-player-shell');
 
   app.innerHTML = `
     <div class="auth-scene" aria-label="Tela inicial de autenticação do jogo">
@@ -308,13 +324,27 @@ export function createAuthScreen() {
     </div>
   `;
 
-  const soundToggle = app.querySelector('.sound-toggle');
+  const generatedSoundToggle = app.querySelector('.sound-toggle');
+  const generatedMusicPlayer = app.querySelector('.music-player-shell');
+
+  if (preservedSoundToggle && preservedSoundToggle !== generatedSoundToggle) {
+    generatedSoundToggle?.remove();
+    app.prepend(preservedSoundToggle);
+  }
+
+  if (preservedMusicPlayer && preservedMusicPlayer !== generatedMusicPlayer) {
+    generatedMusicPlayer?.remove();
+    app.prepend(preservedMusicPlayer);
+  }
+
+  const soundToggle = app.querySelector('.sound-toggle') || preservedSoundToggle;
+  const musicPlayerShell = app.querySelector('.music-player-shell') || preservedMusicPlayer;
+
   const messageBox = app.querySelector('#system-message');
   const loginSection = app.querySelector('[data-view="login"]');
   const signupSection = app.querySelector('[data-view="signup"]');
   const loginForm = app.querySelector('#login-form');
   const signupForm = app.querySelector('#signup-form');
-  const musicPlayerShell = app.querySelector('.music-player-shell');
   const musicPlayer = app.querySelector('.music-player');
   const musicPlayerClose = app.querySelector('.music-player-close');
   const musicPlayerTrackName = app.querySelector('.music-player-track-name');
@@ -367,9 +397,7 @@ export function createAuthScreen() {
   };
 
   const playlist = [...musicPlaylist];
-  const audioElement = new Audio();
-  audioElement.loop = false;
-  audioElement.preload = 'auto';
+  const audioElement = getSharedAudioElement();
 
   let soundEnabled = readStoredValue(musicStorageKeys.enabled, false);
   let activeView = 'login';
@@ -392,6 +420,18 @@ export function createAuthScreen() {
   if (playlist.length > 0) {
     activeTrackIndex = Math.min(activeTrackIndex, playlist.length - 1);
   }
+
+  const normalizeAudioSource = (source) => {
+    if (!source) {
+      return '';
+    }
+
+    try {
+      return new URL(source, window.location.href).href;
+    } catch {
+      return String(source);
+    }
+  };
 
   const formatTime = (value) => {
     const seconds = Number.isFinite(value) ? Math.max(0, value) : 0;
@@ -579,10 +619,17 @@ export function createAuthScreen() {
       return false;
     }
 
-    audioElement.src = getTrackSource(track.fileName);
+    const nextTrackSource = getTrackSource(track.fileName);
+    const currentTrackSource = normalizeAudioSource(audioElement.src);
+    const targetTrackSource = normalizeAudioSource(nextTrackSource);
+
+    if (currentTrackSource !== targetTrackSource) {
+      audioElement.src = nextTrackSource;
+      audioElement.load();
+    }
+
     audioElement.volume = clampVolume(activeVolume);
     audioElement.loop = isLoopEnabled;
-    audioElement.load();
     writeStoredValue(musicStorageKeys.track, safeTrackIndex);
     updatePlayerState();
 
@@ -647,65 +694,76 @@ export function createAuthScreen() {
     applyCurrentTrack({ autoPlay: soundEnabled });
   };
 
-  audioElement.addEventListener('loadedmetadata', () => {
-    updatePlayerState();
-  });
+  if (!sharedAudioListenersBound) {
+    audioElement.addEventListener('loadedmetadata', () => {
+      updatePlayerState();
+    });
 
-  audioElement.addEventListener('timeupdate', () => {
-    updatePlayerState();
-  });
+    audioElement.addEventListener('timeupdate', () => {
+      updatePlayerState();
+    });
 
-  audioElement.addEventListener('play', () => {
-    soundEnabled = true;
-    writeStoredValue(musicStorageKeys.enabled, true);
-    updatePlayerState();
-  });
+    audioElement.addEventListener('play', () => {
+      soundEnabled = true;
+      writeStoredValue(musicStorageKeys.enabled, true);
+      updatePlayerState();
+    });
 
-  audioElement.addEventListener('pause', () => {
-    soundEnabled = false;
-    writeStoredValue(musicStorageKeys.enabled, false);
-    updatePlayerState();
-  });
+    audioElement.addEventListener('pause', () => {
+      soundEnabled = false;
+      writeStoredValue(musicStorageKeys.enabled, false);
+      updatePlayerState();
+    });
 
-  audioElement.addEventListener('ended', () => {
-    if (!soundEnabled) {
-      return;
-    }
+    audioElement.addEventListener('ended', () => {
+      if (!soundEnabled) {
+        return;
+      }
 
-    if (isLoopEnabled) {
-      audioElement.currentTime = 0;
-      audioElement.play().catch(() => {
-        soundEnabled = false;
-        writeStoredValue(musicStorageKeys.enabled, false);
-        updatePlayerState();
-      });
-      return;
-    }
+      if (isLoopEnabled) {
+        audioElement.currentTime = 0;
+        audioElement.play().catch(() => {
+          soundEnabled = false;
+          writeStoredValue(musicStorageKeys.enabled, false);
+          updatePlayerState();
+        });
+        return;
+      }
 
-    advanceToNextTrack();
-  });
-
-  audioElement.addEventListener('error', () => {
-    // eslint-disable-next-line no-console
-    console.warn('Não foi possível carregar a música ambiente. Tentando a próxima faixa.');
-
-    if (playlist.length > 1) {
       advanceToNextTrack();
-      return;
-    }
+    });
 
-    soundEnabled = false;
-    writeStoredValue(musicStorageKeys.enabled, false);
-    updatePlayerState();
-    setMessage('info', 'Não foi possível carregar a música ambiente.');
-  });
+    audioElement.addEventListener('error', () => {
+      // eslint-disable-next-line no-console
+      console.warn('Não foi possível carregar a música ambiente. Tentando a próxima faixa.');
+
+      if (playlist.length > 1) {
+        advanceToNextTrack();
+        return;
+      }
+
+      soundEnabled = false;
+      writeStoredValue(musicStorageKeys.enabled, false);
+      updatePlayerState();
+      setMessage('info', 'Não foi possível carregar a música ambiente.');
+    });
+
+    sharedAudioListenersBound = true;
+  }
 
   if (playlist.length > 0) {
     const firstTrack = playlist[activeTrackIndex];
-    audioElement.src = firstTrack ? getTrackSource(firstTrack.fileName) : '';
+    const currentTrackSource = firstTrack ? getTrackSource(firstTrack.fileName) : '';
+    const normalizedCurrentSource = normalizeAudioSource(audioElement.src);
+    const normalizedTargetSource = normalizeAudioSource(currentTrackSource);
+
+    if (normalizedCurrentSource !== normalizedTargetSource && currentTrackSource) {
+      audioElement.src = currentTrackSource;
+      audioElement.load();
+    }
+
     audioElement.volume = clampVolume(activeVolume);
     audioElement.loop = isLoopEnabled;
-    audioElement.load();
   }
 
   updatePlayerState();
