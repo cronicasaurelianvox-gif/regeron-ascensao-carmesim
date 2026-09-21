@@ -163,6 +163,75 @@ describe('createAuthScreen', () => {
 });
 
 describe('createAdventureHub', () => {
+  it('renderiza um popup do menu independente do card de personagem e ancorado ao botão MENU', () => {
+    const app = document.createElement('div');
+    app.id = 'app';
+    document.body.appendChild(app);
+
+    createAdventureHub({
+      player: { displayName: 'Kael', email: 'kael@regeron.com' },
+      level: 12,
+      realm: 'Reino Mortal',
+      progress: 82,
+      objective: 'DERROTAR LILITH'
+    });
+
+    const menuButton = app.querySelector('.hub-menu-button');
+    const characterCard = app.querySelector('.character-card');
+    const menuPopup = app.querySelector('.hub-menu-popup');
+
+    expect(menuButton).not.toBeNull();
+    expect(characterCard).not.toBeNull();
+    expect(menuPopup).not.toBeNull();
+    expect(menuPopup.closest('.character-card')).toBeNull();
+
+    menuButton.getBoundingClientRect = () => ({
+      top: 80,
+      left: 200,
+      right: 300,
+      bottom: 100,
+      width: 100,
+      height: 20
+    });
+    Object.defineProperty(menuPopup, 'offsetWidth', { value: 240, configurable: true });
+    Object.defineProperty(menuPopup, 'offsetHeight', { value: 360, configurable: true });
+    Object.defineProperty(window, 'innerWidth', { value: 1200, configurable: true });
+    Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true });
+
+    menuButton.click();
+
+    expect(menuPopup.classList.contains('is-open')).toBe(true);
+    expect(menuPopup.style.left).toBe('314px');
+    expect(menuPopup.style.top).toBe('80px');
+    expect(menuPopup.style.position).toBe('fixed');
+
+    app.remove();
+  });
+
+  it('exibe Rokmas e Fragmentos no header ao lado do botão MENU', () => {
+    const app = document.createElement('div');
+    app.id = 'app';
+    document.body.appendChild(app);
+
+    createAdventureHub({
+      player: { displayName: 'Kael', email: 'kael@regeron.com', rokmas: 1250, fragmentos: 340 },
+      level: 12,
+      realm: 'Reino Mortal',
+      progress: 82,
+      objective: 'DERROTAR LILITH'
+    });
+
+    expect(app.innerHTML).toContain('Rokmas');
+    expect(app.innerHTML).toContain('Fragmentos');
+    expect(app.innerHTML).toContain('1.250');
+    expect(app.innerHTML).toContain('340');
+    expect(app.querySelector('.hub-user')).toBeNull();
+    expect(app.querySelector('.hub-avatar')).toBeNull();
+    expect(app.querySelector('.hub-user__meta')).toBeNull();
+
+    app.remove();
+  });
+
   it('preserva o player de trilha sonora ao entrar no reino', () => {
     const app = document.createElement('div');
     app.id = 'app';
