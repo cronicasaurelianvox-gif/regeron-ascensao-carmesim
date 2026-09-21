@@ -1039,23 +1039,31 @@ export function createAuthScreen() {
     });
   }
 
+  // Inicializa/atualiza visualmente o botão de reprodução em segundo plano em cada render,
+  // mas liga o handler de clique apenas uma vez para evitar duplicações.
   if (musicBgToggle) {
-    // Inicializa o botão conforme preferência
     musicBgToggle.setAttribute('aria-pressed', String(continueInBackground));
     musicBgToggle.title = continueInBackground
       ? 'Reprodução em segundo plano: ativada'
       : 'Reprodução em segundo plano: desativada';
     musicBgToggle.classList.toggle('is-active', continueInBackground);
 
-    musicBgToggle.addEventListener('click', () => {
-      continueInBackground = !continueInBackground;
-      writeStoredValue(musicStorageKeys.background, continueInBackground);
-      musicBgToggle.setAttribute('aria-pressed', String(continueInBackground));
-      musicBgToggle.title = continueInBackground
-        ? 'Reprodução em segundo plano: ativada'
-        : 'Reprodução em segundo plano: desativada';
-      musicBgToggle.classList.toggle('is-active', continueInBackground);
-    });
+    if (!musicBgToggle.dataset.bgBound) {
+      musicBgToggle.addEventListener('click', () => {
+        continueInBackground = !continueInBackground;
+        writeStoredValue(musicStorageKeys.background, continueInBackground);
+        musicBgToggle.setAttribute('aria-pressed', String(continueInBackground));
+        musicBgToggle.title = continueInBackground
+          ? 'Reprodução em segundo plano: ativada'
+          : 'Reprodução em segundo plano: desativada';
+        musicBgToggle.classList.toggle('is-active', continueInBackground);
+      });
+      try {
+        musicBgToggle.dataset.bgBound = '1';
+      } catch (e) {
+        // silencioso
+      }
+    }
   }
     // Marca que o player já recebeu os handlers UI.
     try {
