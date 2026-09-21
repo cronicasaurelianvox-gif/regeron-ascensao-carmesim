@@ -12,8 +12,6 @@ import { handleRegister, loginWithIdentifier, requestPasswordReset } from '../se
 import { createAdventureHub } from './adventure-hub.js';
 import { validateEmail, validateLoginForm, validateSignupForm } from './validation.js';
 
-
-
 export function togglePasswordVisibility(input, shouldShow) {
   if (!input) {
     return null;
@@ -608,6 +606,33 @@ export function createAuthScreen() {
     syncVolumePopoverState();
   };
 
+  const playAudioSafely = () => {
+    try {
+      const playPromise = audioElement.play();
+
+      if (playPromise && typeof playPromise.then === 'function') {
+        playPromise
+          .then(() => {
+            updatePlayerState();
+          })
+          .catch(() => {
+            soundEnabled = false;
+            writeStoredValue(musicStorageKeys.enabled, false);
+            updatePlayerState();
+            setMessage('info', 'Clique no botão de som para iniciar a música.');
+          });
+        return;
+      }
+
+      updatePlayerState();
+    } catch {
+      soundEnabled = false;
+      writeStoredValue(musicStorageKeys.enabled, false);
+      updatePlayerState();
+      setMessage('info', 'Clique no botão de som para iniciar a música.');
+    }
+  };
+
   const applyCurrentTrack = ({ autoPlay = false } = {}) => {
     if (playlist.length === 0) {
       return false;
@@ -636,17 +661,7 @@ export function createAuthScreen() {
     updatePlayerState();
 
     if (autoPlay && soundEnabled) {
-      audioElement
-        .play()
-        .then(() => {
-          updatePlayerState();
-        })
-        .catch(() => {
-          soundEnabled = false;
-          writeStoredValue(musicStorageKeys.enabled, false);
-          updatePlayerState();
-          setMessage('info', 'Clique no botão de som para iniciar a música.');
-        });
+      playAudioSafely();
     }
 
     return true;
@@ -710,22 +725,35 @@ export function createAuthScreen() {
       updatePlayerState();
     },
     pause: () => {
+      if (audioElement.ended) {
+        return;
+      }
+
       soundEnabled = false;
       writeStoredValue(musicStorageKeys.enabled, false);
       updatePlayerState();
     },
     ended: () => {
-      if (!soundEnabled) {
-        return;
-      }
+      soundEnabled = true;
+      writeStoredValue(musicStorageKeys.enabled, true);
 
       if (isLoopEnabled) {
         audioElement.currentTime = 0;
-        audioElement.play().catch(() => {
+        try {
+          const playPromise = audioElement.play();
+
+          if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(() => {
+              soundEnabled = false;
+              writeStoredValue(musicStorageKeys.enabled, false);
+              updatePlayerState();
+            });
+          }
+        } catch {
           soundEnabled = false;
           writeStoredValue(musicStorageKeys.enabled, false);
           updatePlayerState();
-        });
+        }
         return;
       }
 
@@ -757,7 +785,7 @@ export function createAuthScreen() {
         writeStoredValue(musicStorageKeys.enabled, false);
         updatePlayerState();
       }
-    } catch (e) {
+    } catch {
       // silencioso — não deve quebrar a UI
     }
   };
@@ -770,7 +798,7 @@ export function createAuthScreen() {
         writeStoredValue(musicStorageKeys.enabled, false);
         updatePlayerState();
       }
-    } catch (e) {
+    } catch {
       // silencioso
     }
   };
@@ -892,185 +920,187 @@ export function createAuthScreen() {
   };
 
   // Evita múltiplos bindings quando o player é preservado entre views.
-  const alreadyUiBound = musicPlayer && musicPlayer.dataset && musicPlayer.dataset.regeronUiBound === '1';
+  const alreadyUiBound =
+    musicPlayer && musicPlayer.dataset && musicPlayer.dataset.regeronUiBound === '1';
 
   if (!alreadyUiBound) {
     soundToggle.addEventListener('click', async () => {
-    if (!playlist.length) {
-      setMessage('info', 'Não foi possível carregar a música ambiente.');
-      return;
-    }
+      if (!playlist.length) {
+        setMessage('info', 'Não foi possível carregar a música ambiente.');
+        return;
+      }
 
-    if (isMinimized) {
-      isMinimized = false;
-      writeStoredValue(musicStorageKeys.minimized, false);
+      if (isMinimized) {
+        isMinimized = false;
+        writeStoredValue(musicStorageKeys.minimized, false);
+
+        if (!audioElement.src) {
+          applyCurrentTrack({ autoPlay: false });
+        }
+
+        updatePlayerState();
+        return;
+      }
+
+      isMinimized = true;
+      writeStoredValue(musicStorageKeys.minimized, true);
+      updatePlayerState();
+    });
+
+    musicPlayerClose.addEventListener('click', () => {
+      isMinimized = true;
+      writeStoredValue(musicStorageKeys.minimized, true);
+      updatePlayerState();
+    });
+
+    musicPlayToggle.addEventListener('click', async () => {
+      if (!playlist.length) {
+        setMessage('info', 'Não foi possível carregar a música ambiente.');
+        return;
+      }
+
+      if (soundEnabled && !audioElement.paused) {
+        pauseCurrentTrack();
+        return;
+      }
 
       if (!audioElement.src) {
-        applyCurrentTrack({ autoPlay: false });
+        applyCurrentTrack({ autoPlay: true });
+        return;
       }
 
-      updatePlayerState();
-      return;
-    }
-
-    isMinimized = true;
-    writeStoredValue(musicStorageKeys.minimized, true);
-    updatePlayerState();
-  });
-
-  musicPlayerClose.addEventListener('click', () => {
-    isMinimized = true;
-    writeStoredValue(musicStorageKeys.minimized, true);
-    updatePlayerState();
-  });
-
-  musicPlayToggle.addEventListener('click', async () => {
-    if (!playlist.length) {
-      setMessage('info', 'Não foi possível carregar a música ambiente.');
-      return;
-    }
-
-    if (soundEnabled && !audioElement.paused) {
-      pauseCurrentTrack();
-      return;
-    }
-
-    if (!audioElement.src) {
-      applyCurrentTrack({ autoPlay: true });
-      return;
-    }
-
-    await playCurrentTrack();
-  });
-
-  musicPreviousButton.addEventListener('click', () => {
-    if (!playlist.length) {
-      return;
-    }
-
-    activeTrackIndex = getPreviousTrackIndex(activeTrackIndex, playlist.length);
-    applyCurrentTrack({ autoPlay: soundEnabled });
-  });
-
-  musicNextButton.addEventListener('click', () => {
-    if (!playlist.length) {
-      return;
-    }
-
-    activeTrackIndex = getNextTrackIndex(activeTrackIndex, playlist.length);
-    applyCurrentTrack({ autoPlay: soundEnabled });
-  });
-
-  musicMuteToggle.addEventListener('click', () => {
-    isVolumePopoverOpen = !isVolumePopoverOpen;
-    updatePlayerState();
-  });
-
-  app.addEventListener('click', (event) => {
-    const clickedInsidePlayer = musicPlayer.contains(event.target);
-    const clickedMuteButton = event.target.closest('.music-mute-toggle');
-    const clickedVolumeSlider = event.target.closest('.music-volume-slider');
-
-    if (!clickedInsidePlayer || clickedMuteButton || clickedVolumeSlider) {
-      return;
-    }
-
-    if (isVolumePopoverOpen) {
-      isVolumePopoverOpen = false;
-      updatePlayerState();
-    }
-  });
-
-  musicVolumeSlider.addEventListener('input', (event) => {
-    activeVolume = clampVolume(event.target.value);
-    lastVolumeBeforeMute = activeVolume > 0 ? activeVolume : lastVolumeBeforeMute;
-    audioElement.volume = clampVolume(activeVolume);
-    writeStoredValue(musicStorageKeys.volume, activeVolume);
-    updatePlayerState();
-  });
-
-  musicProgress.addEventListener('input', (event) => {
-    const totalDuration = Number.isFinite(audioElement.duration) ? audioElement.duration : 0;
-
-    if (totalDuration <= 0) {
-      return;
-    }
-
-    audioElement.currentTime = (Number(event.target.value) / 100) * totalDuration;
-    updatePlayerState();
-  });
-
-  musicLoopToggle.addEventListener('click', () => {
-    isLoopEnabled = !isLoopEnabled;
-    audioElement.loop = isLoopEnabled;
-    writeStoredValue(musicStorageKeys.loop, isLoopEnabled);
-    updatePlayerState();
-  });
-
-  if (musicLibraryToggle) {
-    musicLibraryToggle.addEventListener('click', () => {
-      isLibraryOpen = !isLibraryOpen;
-      syncLibraryState();
+      await playCurrentTrack();
     });
-  }
 
-  musicTrackSelect.addEventListener('change', (event) => {
-    activeTrackIndex = Number(event.target.value);
-    writeStoredValue(musicStorageKeys.track, activeTrackIndex);
-    applyCurrentTrack({ autoPlay: soundEnabled });
-  });
+    musicPreviousButton.addEventListener('click', () => {
+      if (!playlist.length) {
+        return;
+      }
 
-  musicTrackList.addEventListener('click', (event) => {
-    const trackButton = event.target.closest('[data-track-index]');
-
-    if (!trackButton) {
-      return;
-    }
-
-    activeTrackIndex = Number(trackButton.dataset.trackIndex);
-    writeStoredValue(musicStorageKeys.track, activeTrackIndex);
-    applyCurrentTrack({ autoPlay: soundEnabled });
-  });
-
-  if (musicTrackSearch) {
-    musicTrackSearch.addEventListener('input', (event) => {
-      trackSearchQuery = event.target.value.trim();
-      updateTrackList();
+      activeTrackIndex = getPreviousTrackIndex(activeTrackIndex, playlist.length);
+      applyCurrentTrack({ autoPlay: soundEnabled });
     });
-  }
 
-  // Inicializa/atualiza visualmente o botão de reprodução em segundo plano em cada render,
-  // mas liga o handler de clique apenas uma vez para evitar duplicações.
-  if (musicBgToggle) {
-    musicBgToggle.setAttribute('aria-pressed', String(continueInBackground));
-    musicBgToggle.title = continueInBackground
-      ? 'Reprodução em segundo plano: ativada'
-      : 'Reprodução em segundo plano: desativada';
-    musicBgToggle.classList.toggle('is-active', continueInBackground);
+    musicNextButton.addEventListener('click', () => {
+      if (!playlist.length) {
+        return;
+      }
 
-    if (!musicBgToggle.dataset.bgBound) {
-      musicBgToggle.addEventListener('click', () => {
-        continueInBackground = !continueInBackground;
-        writeStoredValue(musicStorageKeys.background, continueInBackground);
-        musicBgToggle.setAttribute('aria-pressed', String(continueInBackground));
-        musicBgToggle.title = continueInBackground
-          ? 'Reprodução em segundo plano: ativada'
-          : 'Reprodução em segundo plano: desativada';
-        musicBgToggle.classList.toggle('is-active', continueInBackground);
+      activeTrackIndex = getNextTrackIndex(activeTrackIndex, playlist.length);
+      applyCurrentTrack({ autoPlay: soundEnabled });
+    });
+
+    musicMuteToggle.addEventListener('click', () => {
+      isVolumePopoverOpen = !isVolumePopoverOpen;
+      updatePlayerState();
+    });
+
+    app.addEventListener('click', (event) => {
+      const clickedInsidePlayer = musicPlayer.contains(event.target);
+      const clickedMuteButton = event.target.closest('.music-mute-toggle');
+      const clickedVolumeSlider = event.target.closest('.music-volume-slider');
+
+      if (!clickedInsidePlayer || clickedMuteButton || clickedVolumeSlider) {
+        return;
+      }
+
+      if (isVolumePopoverOpen) {
+        isVolumePopoverOpen = false;
+        updatePlayerState();
+      }
+    });
+
+    musicVolumeSlider.addEventListener('input', (event) => {
+      activeVolume = clampVolume(event.target.value);
+      lastVolumeBeforeMute = activeVolume > 0 ? activeVolume : lastVolumeBeforeMute;
+      audioElement.volume = clampVolume(activeVolume);
+      writeStoredValue(musicStorageKeys.volume, activeVolume);
+      updatePlayerState();
+    });
+
+    musicProgress.addEventListener('input', (event) => {
+      const totalDuration = Number.isFinite(audioElement.duration) ? audioElement.duration : 0;
+
+      if (totalDuration <= 0) {
+        return;
+      }
+
+      audioElement.currentTime = (Number(event.target.value) / 100) * totalDuration;
+      updatePlayerState();
+    });
+
+    musicLoopToggle.addEventListener('click', () => {
+      isLoopEnabled = !isLoopEnabled;
+      audioElement.loop = isLoopEnabled;
+      writeStoredValue(musicStorageKeys.loop, isLoopEnabled);
+      updatePlayerState();
+    });
+
+    if (musicLibraryToggle) {
+      musicLibraryToggle.addEventListener('click', () => {
+        isLibraryOpen = !isLibraryOpen;
+        syncLibraryState();
       });
-      try {
-        musicBgToggle.dataset.bgBound = '1';
-      } catch (e) {
-        // silencioso
+    }
+
+    musicTrackSelect.addEventListener('change', (event) => {
+      activeTrackIndex = Number(event.target.value);
+      writeStoredValue(musicStorageKeys.track, activeTrackIndex);
+      applyCurrentTrack({ autoPlay: soundEnabled });
+    });
+
+    musicTrackList.addEventListener('click', (event) => {
+      const trackButton = event.target.closest('[data-track-index]');
+
+      if (!trackButton) {
+        return;
+      }
+
+      activeTrackIndex = Number(trackButton.dataset.trackIndex);
+      writeStoredValue(musicStorageKeys.track, activeTrackIndex);
+      applyCurrentTrack({ autoPlay: soundEnabled });
+    });
+
+    if (musicTrackSearch) {
+      musicTrackSearch.addEventListener('input', (event) => {
+        trackSearchQuery = event.target.value.trim();
+        updateTrackList();
+      });
+    }
+
+    // Inicializa/atualiza visualmente o botão de reprodução em segundo plano em cada render,
+    // mas liga o handler de clique apenas uma vez para evitar duplicações.
+    if (musicBgToggle) {
+      musicBgToggle.setAttribute('aria-pressed', String(continueInBackground));
+      musicBgToggle.title = continueInBackground
+        ? 'Reprodução em segundo plano: ativada'
+        : 'Reprodução em segundo plano: desativada';
+      musicBgToggle.classList.toggle('is-active', continueInBackground);
+
+      if (!musicBgToggle.dataset.bgBound) {
+        musicBgToggle.addEventListener('click', () => {
+          continueInBackground = !continueInBackground;
+          writeStoredValue(musicStorageKeys.background, continueInBackground);
+          musicBgToggle.setAttribute('aria-pressed', String(continueInBackground));
+          musicBgToggle.title = continueInBackground
+            ? 'Reprodução em segundo plano: ativada'
+            : 'Reprodução em segundo plano: desativada';
+          musicBgToggle.classList.toggle('is-active', continueInBackground);
+        });
+        try {
+          musicBgToggle.dataset.bgBound = '1';
+        } catch {
+          // silencioso
+        }
       }
     }
-  }
+
     // Marca que o player já recebeu os handlers UI.
     try {
       if (musicPlayer && musicPlayer.dataset) {
         musicPlayer.dataset.regeronUiBound = '1';
       }
-    } catch (e) {
+    } catch {
       // silencioso
     }
   }

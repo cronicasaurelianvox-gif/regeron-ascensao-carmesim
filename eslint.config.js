@@ -12,6 +12,9 @@ export default [
         FormData: 'readonly',
         localStorage: 'readonly',
         Audio: 'readonly',
+        URL: 'readonly',
+        window: 'readonly',
+        Event: 'readonly',
         console: 'readonly'
       }
     },
