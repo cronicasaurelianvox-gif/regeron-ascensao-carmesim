@@ -139,6 +139,81 @@ describe('createAuthScreen', () => {
 });
 
 describe('createAdventureHub', () => {
+  it('preserva o player de trilha sonora ao entrar no reino', () => {
+    const app = document.createElement('div');
+    app.id = 'app';
+    document.body.appendChild(app);
+
+    createAuthScreen();
+    const originalSoundToggle = app.querySelector('.sound-toggle');
+    const originalMusicPlayerShell = app.querySelector('.music-player-shell');
+
+    expect(originalSoundToggle).not.toBeNull();
+    expect(originalMusicPlayerShell).not.toBeNull();
+
+    createAdventureHub({
+      player: { displayName: 'Kael', email: 'kael@regeron.com' },
+      level: 12,
+      realm: 'Reino Mortal',
+      progress: 82,
+      objective: 'DERROTAR LILITH'
+    });
+
+    expect(app.querySelector('.sound-toggle')).not.toBeNull();
+    expect(app.querySelector('.music-player-shell')).not.toBeNull();
+    expect(app.querySelector('.sound-toggle')).toBe(originalSoundToggle);
+    expect(app.querySelector('.music-player-shell')).toBe(originalMusicPlayerShell);
+
+    app.remove();
+  });
+
+  it('preserva o player de trilha sonora ao voltar para a tela de login', () => {
+    const app = document.createElement('div');
+    app.id = 'app';
+    document.body.appendChild(app);
+
+    createAuthScreen();
+    const originalSoundToggle = app.querySelector('.sound-toggle');
+    const originalMusicPlayerShell = app.querySelector('.music-player-shell');
+
+    createAdventureHub({
+      player: { displayName: 'Kael', email: 'kael@regeron.com' },
+      level: 12,
+      realm: 'Reino Mortal',
+      progress: 82,
+      objective: 'DERROTAR LILITH'
+    });
+
+    const hubSoundToggle = app.querySelector('.sound-toggle');
+    const hubMusicPlayerShell = app.querySelector('.music-player-shell');
+
+    createAuthScreen();
+
+    expect(app.querySelector('.sound-toggle')).not.toBeNull();
+    expect(app.querySelector('.music-player-shell')).not.toBeNull();
+    expect(app.querySelector('.sound-toggle')).toBe(hubSoundToggle);
+    expect(app.querySelector('.music-player-shell')).toBe(hubMusicPlayerShell);
+    expect(app.querySelector('.sound-toggle')).toBe(originalSoundToggle);
+    expect(app.querySelector('.music-player-shell')).toBe(originalMusicPlayerShell);
+
+    app.remove();
+  });
+
+  it('não recarrega a trilha atual ao voltar para a tela de login com música ativa', () => {
+    const app = document.createElement('div');
+    app.id = 'app';
+    document.body.appendChild(app);
+
+    createAuthScreen();
+    const loadSpy = vi.spyOn(window.HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+
+    createAuthScreen();
+
+    expect(loadSpy).not.toHaveBeenCalled();
+    loadSpy.mockRestore();
+    app.remove();
+  });
+
   it('renderiza a central de aventura com os principais blocos do jogo', () => {
     const app = document.createElement('div');
     app.id = 'app';

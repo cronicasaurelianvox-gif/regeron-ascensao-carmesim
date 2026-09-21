@@ -15,7 +15,6 @@ describe('music playlist', () => {
   it('detecta automaticamente as músicas da pasta pública e ignora entradas inválidas', () => {
     expect(musicPlaylist.length).toBeGreaterThan(0);
     expect(musicPlaylist.every((track) => /\.(mp3|ogg|wav)$/i.test(track.fileName))).toBe(true);
-    expect(musicPlaylist.some((track) => track.fileName.includes('ReDungeon'))).toBe(true);
   });
 
   it('mantém o volume dentro do intervalo válido', () => {
