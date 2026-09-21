@@ -102,6 +102,15 @@ export function createAuthScreen() {
               >
                 <span aria-hidden="true">☰</span>
               </button>
+              <button
+                type="button"
+                class="music-icon-button music-bg-toggle"
+                aria-label="Permitir reprodução em segundo plano"
+                title="Permitir reprodução em segundo plano"
+                aria-pressed="true"
+              >
+                ⤴
+              </button>
               <button class="music-player-close" type="button" aria-label="Minimizar player" title="Minimizar player">
                 −
               </button>
@@ -350,6 +359,7 @@ export function createAuthScreen() {
   const musicDuration = app.querySelector('.music-duration');
   const musicLoopToggle = app.querySelector('.music-loop-toggle');
   const musicLibraryToggle = app.querySelector('.music-library-toggle');
+  const musicBgToggle = app.querySelector('.music-bg-toggle');
   const musicTrackSelect = app.querySelector('.music-track-select');
   const musicTrackSearch = app.querySelector('.music-track-search');
   const musicTrackList = app.querySelector('.music-track-list');
@@ -361,7 +371,8 @@ export function createAuthScreen() {
     volume: 'regeron-music-volume',
     track: 'regeron-music-track',
     loop: 'regeron-music-loop',
-    minimized: 'regeron-music-minimized'
+    minimized: 'regeron-music-minimized',
+    background: 'regeron-music-background'
   };
 
   const readStoredValue = (key, fallback) => {
@@ -395,6 +406,7 @@ export function createAuthScreen() {
   let activeTrackIndex = Number(readStoredValue(musicStorageKeys.track, 0));
   let isLoopEnabled = Boolean(readStoredValue(musicStorageKeys.loop, false));
   let isMinimized = Boolean(readStoredValue(musicStorageKeys.minimized, true));
+  let continueInBackground = Boolean(readStoredValue(musicStorageKeys.background, true));
   let isLibraryOpen = false;
   let isVolumePopoverOpen = false;
   let lastVolumeBeforeMute = activeVolume > 0 ? activeVolume : 0.25;
@@ -735,11 +747,11 @@ export function createAuthScreen() {
     }
   });
 
-  // Pausa o áudio quando o usuário sai da aba ou a página é descarregada.
-  // Evita que a música continue tocando sem controle quando o app perde foco.
-  const handleVisibilityPause = () => {
+  // Pausa o áudio apenas quando a página é descarregada (navegação/fechamento).
+  // Se a preferência `continueInBackground` for false, também pausa ao perder foco.
+  const handlePageHidePause = () => {
     try {
-      if (document.hidden && !audioElement.paused) {
+      if (!audioElement.paused) {
         audioElement.pause();
         soundEnabled = false;
         writeStoredValue(musicStorageKeys.enabled, false);
@@ -750,8 +762,23 @@ export function createAuthScreen() {
     }
   };
 
-  document.addEventListener('visibilitychange', handleVisibilityPause);
-  window.addEventListener('pagehide', handleVisibilityPause);
+  const handleVisibilityChange = () => {
+    try {
+      if (document.hidden && !continueInBackground && !audioElement.paused) {
+        audioElement.pause();
+        soundEnabled = false;
+        writeStoredValue(musicStorageKeys.enabled, false);
+        updatePlayerState();
+      }
+    } catch (e) {
+      // silencioso
+    }
+  };
+
+  // Pausa durante pagehide (quando a aba é descarregada)
+  window.addEventListener('pagehide', handlePageHidePause);
+  // Respeita a preferência do usuário ao perder foco
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 
   if (playlist.length > 0) {
     const firstTrack = playlist[activeTrackIndex];
@@ -1009,6 +1036,25 @@ export function createAuthScreen() {
     musicTrackSearch.addEventListener('input', (event) => {
       trackSearchQuery = event.target.value.trim();
       updateTrackList();
+    });
+  }
+
+  if (musicBgToggle) {
+    // Inicializa o botão conforme preferência
+    musicBgToggle.setAttribute('aria-pressed', String(continueInBackground));
+    musicBgToggle.title = continueInBackground
+      ? 'Reprodução em segundo plano: ativada'
+      : 'Reprodução em segundo plano: desativada';
+    musicBgToggle.classList.toggle('is-active', continueInBackground);
+
+    musicBgToggle.addEventListener('click', () => {
+      continueInBackground = !continueInBackground;
+      writeStoredValue(musicStorageKeys.background, continueInBackground);
+      musicBgToggle.setAttribute('aria-pressed', String(continueInBackground));
+      musicBgToggle.title = continueInBackground
+        ? 'Reprodução em segundo plano: ativada'
+        : 'Reprodução em segundo plano: desativada';
+      musicBgToggle.classList.toggle('is-active', continueInBackground);
     });
   }
     // Marca que o player já recebeu os handlers UI.
