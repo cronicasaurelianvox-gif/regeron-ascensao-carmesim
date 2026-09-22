@@ -232,6 +232,29 @@ describe('createAdventureHub', () => {
     app.remove();
   });
 
+  it('prioriza o nome do jogador antes do username e do e-mail', () => {
+    const app = document.createElement('div');
+    app.id = 'app';
+    document.body.appendChild(app);
+
+    createAdventureHub({
+      player: { displayName: 'Aldebaran', username: 'arcano', email: 'aldebaran@regeron.com' },
+      level: 14,
+      realm: 'Reino Mortal',
+      race: 'Humano',
+      className: 'Guardião Carmesim',
+      progress: 82,
+      objective: 'DERROTAR LILITH'
+    });
+
+    const heading = app.querySelector('.character-card__body h2');
+
+    expect(heading).not.toBeNull();
+    expect(heading.textContent.trim()).toBe('ALDEBARAN');
+
+    app.remove();
+  });
+
   it('preserva o player de trilha sonora ao entrar no reino', () => {
     const app = document.createElement('div');
     app.id = 'app';
