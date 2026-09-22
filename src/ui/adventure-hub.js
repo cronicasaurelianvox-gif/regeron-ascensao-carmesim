@@ -37,7 +37,8 @@ export function createAdventureHub(options = {}) {
   const player = options.player ?? {};
   const displayName = getDisplayName(player);
   const level = Number.isFinite(options.level) ? options.level : 12;
-  const realm = options.realm || 'Reino Mortal';
+  const race = options.race || player.race || 'Humano';
+  const className = options.className || player.className || player.class || 'Guardião Carmesim';
   const progress = clamp(Number(options.progress ?? 82) || 82, 0, 100);
   const formatResourceValue = (value) => {
     const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -136,7 +137,14 @@ export function createAdventureHub(options = {}) {
       <div class="adventure-page">
         <header class="hub-header">
           <div class="hub-brand" aria-label="Logo do jogo">
-            <span class="hub-brand__crest" aria-hidden="true">✦</span>
+            <span class="hub-brand__crest" aria-hidden="true">
+              <img
+                class="hub-brand__crest-image"
+                src="https://i.imgur.com/tflz0aQ.png"
+                alt="Re:Dungeon"
+                loading="lazy"
+              />
+            </span>
             <div class="hub-brand__text">
               <span class="hub-brand__title">Re:Dungeon</span>
             </div>
@@ -226,6 +234,11 @@ export function createAdventureHub(options = {}) {
                 <span class="hub-menu-item__label">Loja</span>
                 <span class="hub-menu-item__arrow" aria-hidden="true">›</span>
               </button>
+              <button type="button" class="hub-menu-item">
+                <span class="hub-menu-item__icon" aria-hidden="true">◉</span>
+                <span class="hub-menu-item__label">Trickster Coins</span>
+                <span class="hub-menu-item__arrow" aria-hidden="true">›</span>
+              </button>
             </div>
 
             <div class="hub-menu-section">
@@ -262,6 +275,20 @@ export function createAdventureHub(options = {}) {
 
               <div class="mode-card__body">
                 <p class="mode-subtitle">Ascensão Carmesim</p>
+
+                <div class="mode-campaign-copy" aria-label="Sinopse da campanha">
+                  <p class="mode-campaign-copy__description">
+                    Uma ameaça esquecida volta a lançar sua sombra sobre o mundo. Antigos presságios começam a se cumprir,
+                    verdades deixam de ser confiáveis e doze destinos são colocados em movimento.
+                  </p>
+                  <p class="mode-campaign-copy__highlight">
+                    Encontre seus aliados, desafie o impossível e sobreviva à mentira.
+                  </p>
+                  <blockquote class="mode-campaign-copy__quote">
+                    “Quando a verdade morrer, em que você escolherá acreditar?”
+                  </blockquote>
+                </div>
+
                 <div class="mode-progress-row">
                   <span>Progresso da campanha</span>
                   <strong>74%</strong>
@@ -285,13 +312,14 @@ export function createAdventureHub(options = {}) {
                 </div>
 
                 <div class="mode-card__body">
+                  <span class="mode-card__eyebrow">Recompensa</span>
                   <p class="mode-award">+250 Fragmentos</p>
                 </div>
 
                 <button type="button" class="hub-action-button hub-action-button--secondary">INICIAR PARTIDA</button>
               </article>
 
-              <article class="mode-card mode-card--challenge is-disabled" aria-label="Modo de desafio">
+              <article class="mode-card mode-card--challenge" aria-label="Modo de desafio">
                 <div class="mode-card__header">
                   <span class="mode-icon" aria-hidden="true">✧</span>
                   <div>
@@ -301,25 +329,37 @@ export function createAdventureHub(options = {}) {
                 </div>
 
                 <div class="mode-card__body">
-                  <div class="mode-status">EM DESENVOLVIMENTO</div>
+                  <span class="mode-card__eyebrow">Recompensa</span>
+                  <p class="mode-award">+400 Fragmentos</p>
                 </div>
 
-                <button type="button" class="hub-action-button hub-action-button--muted" disabled>PRÓXIMO DESAFIO</button>
+                <button type="button" class="hub-action-button hub-action-button--secondary">ACEITAR DESAFIO</button>
               </article>
             </div>
           </section>
 
           <aside class="character-card" aria-label="Resumo do personagem">
-            <div class="character-card__header">PERSONAGEM</div>
+            <div class="character-card__header">
+              <span class="character-card__crest" aria-hidden="true"></span>
+              <span>PERSONAGEM</span>
+            </div>
             <div class="character-portrait" aria-label="Retrato do personagem Kael">
               <div class="character-portrait__frame" aria-hidden="true"></div>
             </div>
 
             <div class="character-card__body">
-              <h2>KAEL</h2>
+              <h2>${String(displayName).toUpperCase()}</h2>
               <p class="character-meta">Nível ${level}</p>
-              <p class="character-title">Guardião Carmesim</p>
-              <p class="character-realm">${realm}</p>
+              <div class="character-status-grid">
+                <div class="character-status-item">
+                  <span class="character-status-label">Raça</span>
+                  <strong class="character-status-value">${race}</strong>
+                </div>
+                <div class="character-status-item">
+                  <span class="character-status-label">Classe</span>
+                  <strong class="character-status-value">${className}</strong>
+                </div>
+              </div>
 
               <div class="character-xp-row">
                 <span>Experiência</span>
@@ -339,12 +379,12 @@ export function createAdventureHub(options = {}) {
             </div>
 
             <div class="objectives-grid">
-              <article class="objective-item">
+              <article class="objective-item objective-item--primary">
                 <div class="objective-item__head">
-                  <span class="objective-item__icon" aria-hidden="true">✦</span>
-                  <div>
+                  <span class="objective-item__emblem objective-item__emblem--primary" aria-hidden="true"></span>
+                  <div class="objective-item__meta">
+                    <small class="objective-item__type">Objetivo principal</small>
                     <h3>Derrotar Lilith</h3>
-                    <small>Objetivo principal</small>
                   </div>
                 </div>
                 <div class="objective-progress">
@@ -356,12 +396,29 @@ export function createAdventureHub(options = {}) {
                 </div>
               </article>
 
-              <article class="objective-item">
+              <article class="objective-item objective-item--hidden">
                 <div class="objective-item__head">
-                  <span class="objective-item__icon" aria-hidden="true">✧</span>
-                  <div>
+                  <span class="objective-item__emblem objective-item__emblem--hidden" aria-hidden="true"></span>
+                  <div class="objective-item__meta">
+                    <small class="objective-item__type">Objetivo oculto</small>
+                    <h3>???</h3>
+                  </div>
+                </div>
+                <div class="objective-progress">
+                  <span>Estado</span>
+                  <strong>Oculto</strong>
+                </div>
+                <div class="xp-bar objective-bar" aria-label="Objetivo oculto ainda não revelado">
+                  <span style="width: 0%"></span>
+                </div>
+              </article>
+
+              <article class="objective-item objective-item--secondary">
+                <div class="objective-item__head">
+                  <span class="objective-item__emblem objective-item__emblem--secondary" aria-hidden="true"></span>
+                  <div class="objective-item__meta">
+                    <small class="objective-item__type">Objetivo secundário</small>
                     <h3>Dominar o poder Carmesim</h3>
-                    <small>Objetivo do personagem</small>
                   </div>
                 </div>
                 <div class="objective-progress">
@@ -373,12 +430,12 @@ export function createAdventureHub(options = {}) {
                 </div>
               </article>
 
-              <article class="objective-item">
+              <article class="objective-item objective-item--repetitive">
                 <div class="objective-item__head">
-                  <span class="objective-item__icon" aria-hidden="true">◆</span>
-                  <div>
+                  <span class="objective-item__emblem objective-item__emblem--repetitive" aria-hidden="true"></span>
+                  <div class="objective-item__meta">
+                    <small class="objective-item__type">Objetivo repetitivo</small>
                     <h3>Alcançar o nível 13</h3>
-                    <small>Próximo marco</small>
                   </div>
                 </div>
                 <div class="objective-progress">
