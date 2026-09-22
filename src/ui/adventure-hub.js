@@ -1,4 +1,5 @@
 import { createAuthScreen } from './auth-screen.js';
+import { openCharacterModal } from './character-modal.js';
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -546,6 +547,40 @@ export function createAdventureHub(options = {}) {
   }
 
   finalSoundToggle?.setAttribute('aria-label', 'Abrir player de música');
+
+  const openCharacterHandler = () => {
+    try {
+      openCharacterModal(player, {
+        meta: {
+          level: Number(player.level ?? level),
+          race: player.race || race,
+          className: player.className || player.class || className,
+          progress: Number(player.progress ?? progress)
+        },
+        onSave: (updated) => {
+          Object.assign(player, updated);
+          const nameEl = app.querySelector('.character-card__body h2');
+          if (nameEl) nameEl.textContent = String(getDisplayName(player)).toUpperCase();
+          const metaEl = app.querySelector('.character-meta');
+          if (metaEl) metaEl.textContent = `Nível ${Number(player.level ?? level)}`;
+          const statusValues = app.querySelectorAll('.character-status-value');
+          if (statusValues[0]) statusValues[0].textContent = player.race || race;
+          if (statusValues[1])
+            statusValues[1].textContent = player.className || player.class || className;
+          const xpStrong = app.querySelector('.character-xp-row strong');
+          if (xpStrong) xpStrong.textContent = `${Number(player.progress ?? progress)}%`;
+          const xpBar = app.querySelector('.xp-bar.character-bar span');
+          if (xpBar) xpBar.style.width = `${Number(player.progress ?? progress)}%`;
+        }
+      });
+    } catch {
+      // fail silently to avoid breaking the hub
+    }
+  };
+
+  app.querySelectorAll('.hub-action-button--character').forEach((btn) => {
+    btn.addEventListener('click', openCharacterHandler);
+  });
 
   return app;
 }
