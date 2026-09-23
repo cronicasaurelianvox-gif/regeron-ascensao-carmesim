@@ -1,26 +1,30 @@
 const fallbackAudioFiles = ['ReDungeon-O Reino Esquecido .mp3'];
 
-const discoveredMusicFiles = Object.entries(
-  import.meta.glob('/public/audio/music/*.{mp3,ogg,wav}', {
-    eager: true,
-    import: 'default'
-  })
-).map(([key, value]) => {
-  const fileName = decodeURIComponent(String(key).split('/').pop() || '');
-
-  if (!fileName) {
-    return null;
-  }
-
-  return {
-    fileName,
-    src: typeof value === 'string' ? value : `${import.meta.env.BASE_URL}audio/music/${fileName}`
-  };
-});
+const discoveredMusicFiles = [
+  'Aetherion, o Eterno.mp3',
+  'Artrias, Aquele que a Floresta Chamou.mp3',
+  'Arty, Lamento Final.mp3',
+  'Aune, Senhora dos Caminhos.mp3',
+  'Celestines - Os que Permanecem.mp3',
+  'Ephelias, Os Três Círculos.mp3',
+  'Hestia, Primeira Chama.mp3',
+  'Lilibeth, A Verdade que Caiu.mp3',
+  'Morvak - Quando a Realidade Hesita.mp3',
+  'Nishi - Senhora do Equilíbrio.mp3',
+  'O Coração da Magia.mp3',
+  'O Reino Esquecido .mp3',
+  'Onde o Vento me Levará.mp3',
+  'Re’Geron - Mundo Azul.mp3',
+  'Salomão, o Último Arquimago.mp3',
+  'Yoru, A Sombra que os Deuses Temem.mp3'
+].map((fileName) => ({
+  fileName,
+  src: getTrackSource(fileName)
+}));
 
 const audioFiles =
-  discoveredMusicFiles.filter(Boolean).length > 0
-    ? discoveredMusicFiles.filter(Boolean)
+  discoveredMusicFiles.length > 0
+    ? discoveredMusicFiles
     : fallbackAudioFiles.map((fileName) => ({
         fileName,
         src: getTrackSource(fileName)
@@ -37,7 +41,7 @@ export function getTrackSource(fileName) {
     return '';
   }
 
-  return `${import.meta.env.BASE_URL}audio/music/${cleanFileName}`;
+  return `${import.meta.env.BASE_URL}audio/music/${encodeURIComponent(cleanFileName)}`;
 }
 
 export function clampVolume(value) {

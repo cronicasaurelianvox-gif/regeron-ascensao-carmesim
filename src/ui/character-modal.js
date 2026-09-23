@@ -1,3 +1,7 @@
+import { openHabilidadesModal } from './habilidades-modal.js';
+import { openInventarioModal } from './inventario-modal.js';
+import { openTalentosModal } from './talentos-modal.js';
+
 export function openCharacterModal(player = {}, options = {}) {
   const { onSave, meta = {} } = options;
 
@@ -43,7 +47,7 @@ export function openCharacterModal(player = {}, options = {}) {
           <div class="character-panel-column">
             <section class="character-section">
               <div class="character-section__header">
-                <span class="character-section__icon" aria-hidden="true">✦</span>
+                <img class="diamond-icon" src="https://i.imgur.com/brHmEjl.png" alt="" aria-hidden="true" />
                 <h4>ATRIBUTOS PRINCIPAIS</h4>
               </div>
 
@@ -52,9 +56,18 @@ export function openCharacterModal(player = {}, options = {}) {
                   .map((k) => {
                     const val = resolve([`attributes.${k}`, k, k.toLowerCase(), k]);
                     const display = val === undefined || val === null ? '—' : String(val);
+                    const iconMap = {
+                      forca: 'https://i.imgur.com/EJ3rQzW.png',
+                      vitalidade: 'https://i.imgur.com/K3uuUge.png',
+                      agilidade: 'https://i.imgur.com/KiLVVOi.png',
+                      inteligencia: 'https://i.imgur.com/EacHWhd.png',
+                      percepcao: 'https://i.imgur.com/mLz0p5Y.png',
+                      sorte: 'https://i.imgur.com/BV9PtIp.png'
+                    };
+
                     return `
                     <div class="attr-card">
-                      <span class="attr-card__icon" aria-hidden="true">${['forca', 'vitalidade', 'agilidade', 'inteligencia', 'percepcao', 'sorte'].indexOf(k) === 0 ? '✦' : ['forca', 'vitalidade', 'agilidade', 'inteligencia', 'percepcao', 'sorte'].indexOf(k) === 1 ? '♥' : ['forca', 'vitalidade', 'agilidade', 'inteligencia', 'percepcao', 'sorte'].indexOf(k) === 2 ? '⚡' : ['forca', 'vitalidade', 'agilidade', 'inteligencia', 'percepcao', 'sorte'].indexOf(k) === 3 ? '✧' : ['forca', 'vitalidade', 'agilidade', 'inteligencia', 'percepcao', 'sorte'].indexOf(k) === 4 ? '◌' : '✺'}</span>
+                      <img class="attr-card__icon attr-card__icon--image" src="${iconMap[k] || ''}" alt="${k}" aria-hidden="true" />
                       <label class="attr-card__label">${k.toUpperCase()}</label>
                       <div class="view attr-view">${display}</div>
                       <input type="number" class="attr-input edit-field" data-key="${k}" value="${val ?? 0}" disabled style="display:none" />
@@ -67,7 +80,7 @@ export function openCharacterModal(player = {}, options = {}) {
 
             <section class="character-section character-section--secondary">
               <div class="character-section__header">
-                <span class="character-section__icon" aria-hidden="true">✦</span>
+                <img class="diamond-icon" src="https://i.imgur.com/brHmEjl.png" alt="" aria-hidden="true" />
                 <h4>ATRIBUTOS SECUNDÁRIOS</h4>
               </div>
 
@@ -76,9 +89,18 @@ export function openCharacterModal(player = {}, options = {}) {
                   .map((k) => {
                     const val = resolve([`attributes.${k}`, k, k.toLowerCase(), k]);
                     const display = val === undefined || val === null ? '—' : String(val);
+                    const iconMap = {
+                      prontidao: 'https://i.imgur.com/VR45Q7f.png',
+                      ataque: 'https://i.imgur.com/MZbCze0.png',
+                      defesa: 'https://i.imgur.com/wTjQ8cz.png',
+                      reacao: 'https://i.imgur.com/ihGFnxa.png',
+                      precisao: 'https://i.imgur.com/A4rp7Lh.png',
+                      evasao: 'https://i.imgur.com/T9LILmW.png'
+                    };
+
                     return `
                     <div class="attr-card attr-card--compact">
-                      <span class="attr-card__icon" aria-hidden="true">${k === 'ataque' ? '⚔' : k === 'defesa' ? '🛡' : k === 'reacao' ? '✦' : k === 'precisao' ? '◎' : k === 'evasao' ? '✧' : '⚑'}</span>
+                      <img class="attr-card__icon attr-card__icon--image" src="${iconMap[k] || ''}" alt="${k}" aria-hidden="true" />
                       <label class="attr-card__label">${k.toUpperCase()}</label>
                       <div class="view attr-view">${display}</div>
                       <input type="number" class="attr-input edit-field" data-key="${k}" value="${val ?? 0}" disabled style="display:none" />
@@ -91,7 +113,7 @@ export function openCharacterModal(player = {}, options = {}) {
 
             <section class="character-section character-section--status">
               <div class="character-section__header">
-                <span class="character-section__icon" aria-hidden="true">✦</span>
+                <img class="diamond-icon" src="https://i.imgur.com/brHmEjl.png" alt="" aria-hidden="true" />
                 <h4>STATUS</h4>
               </div>
 
@@ -104,35 +126,61 @@ export function openCharacterModal(player = {}, options = {}) {
                   const fatigue = resolve(['fatigue', 'fadiga']);
                   const maxFatigue = resolve(['maxFatigue', 'fatigueMax']);
 
+                  const statusIcons = {
+                    health: 'https://i.imgur.com/pEqVKst.png',
+                    energy: 'https://i.imgur.com/DtvdKge.png',
+                    fatigue: 'https://i.imgur.com/b7grtIi.png'
+                  };
+
                   return `
                     <div class="status-card status-card--health">
-                      <div class="status-card__head">
-                        <span class="status-card__icon" aria-hidden="true">♥</span>
-                        <span class="status-card__label">SAÚDE</span>
-                        <span class="status-card__value">${health ?? 0} / ${maxHealth ?? 100}</span>
-                      </div>
-                      <div class="status-bar-wrap">
-                        <div class="status-bar status-bar--health" style="--value:${Math.min(100, Math.max(0, Number(((health ?? 0) / (maxHealth || 100)) * 100)))}%"></div>
+                      <div class="status-card__inner">
+                        <div class="status-card__icon-col">
+                          <img class="status-card__icon status-card__icon--image" src="${statusIcons.health}" alt="Saúde" aria-hidden="true" />
+                        </div>
+                        <div class="status-card__content-col">
+                          <div class="status-card__head">
+                            <span class="status-card__label">SAÚDE</span>
+                            <span class="status-card__value">${health ?? 0} / ${maxHealth ?? 100}</span>
+                          </div>
+                          <div class="status-bar-wrap">
+                            <div class="status-bar status-bar--health" style="--value:${Math.min(100, Math.max(0, Number(((health ?? 0) / (maxHealth || 100)) * 100)))}%"></div>
+                          </div>
+                        </div>
                       </div>
                     </div>
+
                     <div class="status-card status-card--energy">
-                      <div class="status-card__head">
-                        <span class="status-card__icon" aria-hidden="true">✦</span>
-                        <span class="status-card__label">ENERGIA</span>
-                        <span class="status-card__value">${energy ?? 0} / ${maxEnergy ?? 100}</span>
-                      </div>
-                      <div class="status-bar-wrap">
-                        <div class="status-bar status-bar--energy" style="--value:${Math.min(100, Math.max(0, Number(((energy ?? 0) / (maxEnergy || 100)) * 100)))}%"></div>
+                      <div class="status-card__inner">
+                        <div class="status-card__icon-col">
+                          <img class="status-card__icon status-card__icon--image" src="${statusIcons.energy}" alt="Energia" aria-hidden="true" />
+                        </div>
+                        <div class="status-card__content-col">
+                          <div class="status-card__head">
+                            <span class="status-card__label">ENERGIA</span>
+                            <span class="status-card__value">${energy ?? 0} / ${maxEnergy ?? 100}</span>
+                          </div>
+                          <div class="status-bar-wrap">
+                            <div class="status-bar status-bar--energy" style="--value:${Math.min(100, Math.max(0, Number(((energy ?? 0) / (maxEnergy || 100)) * 100)))}%"></div>
+                          </div>
+                        </div>
                       </div>
                     </div>
+
                     <div class="status-card status-card--fatigue">
-                      <div class="status-card__head">
-                        <span class="status-card__icon" aria-hidden="true">✧</span>
-                        <span class="status-card__label">FADIGA</span>
-                        <span class="status-card__value">${fatigue ?? 0} / ${maxFatigue ?? 100}</span>
-                      </div>
-                      <div class="status-bar-wrap">
-                        <div class="status-bar status-bar--fatigue" style="--value:${Math.min(100, Math.max(0, Number(((fatigue ?? 0) / (maxFatigue || 100)) * 100)))}%"></div>
+                      <div class="status-card__inner">
+                        <div class="status-card__icon-col">
+                          <img class="status-card__icon status-card__icon--image" src="${statusIcons.fatigue}" alt="Fadiga" aria-hidden="true" />
+                        </div>
+                        <div class="status-card__content-col">
+                          <div class="status-card__head">
+                            <span class="status-card__label">FADIGA</span>
+                            <span class="status-card__value">${fatigue ?? 0} / ${maxFatigue ?? 100}</span>
+                          </div>
+                          <div class="status-bar-wrap">
+                            <div class="status-bar status-bar--fatigue" style="--value:${Math.min(100, Math.max(0, Number(((fatigue ?? 0) / (maxFatigue || 100)) * 100)))}%"></div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   `;
@@ -144,7 +192,7 @@ export function openCharacterModal(player = {}, options = {}) {
               <section class="character-panel">
                 <div class="character-panel__header">
                   <div class="character-panel__title-wrap">
-                    <span class="character-panel__icon" aria-hidden="true">✦</span>
+                    <img class="diamond-icon" src="https://i.imgur.com/brHmEjl.png" alt="" aria-hidden="true" />
                     <h5>TALENTOS</h5>
                   </div>
                   <button class="character-panel__action" type="button">VER TODOS →</button>
@@ -157,7 +205,7 @@ export function openCharacterModal(player = {}, options = {}) {
                           .map(
                             (talent) => `
                     <div class="talent-item">
-                      <div class="talent-item__icon" aria-hidden="true">✦</div>
+                      <img class="diamond-icon" src="https://i.imgur.com/brHmEjl.png" alt="" aria-hidden="true" />
                       <div class="talent-item__text">
                         <strong>${talent.name || talent}</strong>
                         <span>${talent.description || ''}</span>
@@ -174,7 +222,7 @@ export function openCharacterModal(player = {}, options = {}) {
               <section class="character-panel">
                 <div class="character-panel__header">
                   <div class="character-panel__title-wrap">
-                    <span class="character-panel__icon" aria-hidden="true">✦</span>
+                    <img class="diamond-icon" src="https://i.imgur.com/brHmEjl.png" alt="" aria-hidden="true" />
                     <h5>HABILIDADES</h5>
                   </div>
                   <button class="character-panel__action" type="button">VER TODOS →</button>
@@ -205,7 +253,7 @@ export function openCharacterModal(player = {}, options = {}) {
               <section class="character-panel">
                 <div class="character-panel__header">
                   <div class="character-panel__title-wrap">
-                    <span class="character-panel__icon" aria-hidden="true">✦</span>
+                    <img class="diamond-icon" src="https://i.imgur.com/brHmEjl.png" alt="" aria-hidden="true" />
                     <h5>INVENTÁRIO</h5>
                   </div>
                   <button class="character-panel__action" type="button">VER TODOS →</button>
@@ -289,6 +337,67 @@ export function openCharacterModal(player = {}, options = {}) {
 
   document.body.appendChild(shell);
   document.body.classList.add('character-modal-open');
+
+  // Wire the TALENTOS -> VER TODOS button to open the Talentos modal only for the talents panel
+  const talentsBtn = shell.querySelector(
+    '.character-lower-grid .character-panel:first-of-type .character-panel__action'
+  );
+  if (talentsBtn) {
+    talentsBtn.addEventListener('click', () => {
+      openTalentosModal(draft, {
+        onClose: () => {
+          // refresh the preview list in the talents panel body (keep same preview format)
+          const body = shell.querySelector(
+            '.character-lower-grid .character-panel:first-of-type .character-panel__body'
+          );
+          if (body) {
+            const talentsList = (Array.isArray(draft.talents) ? draft.talents : []).slice(0, 3);
+            body.innerHTML = talentsList.length
+              ? talentsList
+                  .map(
+                    (talent) => `
+                    <div class="talent-item">
+                      <img class="diamond-icon" src="https://i.imgur.com/brHmEjl.png" alt="" aria-hidden="true" />
+                      <div class="talent-item__text">
+                        <strong>${talent.name || talent}</strong>
+                        <span>${talent.description || ''}</span>
+                      </div>
+                    </div>
+                  `
+                  )
+                  .join('')
+              : '<div class="panel-empty">Nenhum talento adquirido.</div>';
+          }
+        }
+      });
+    });
+  }
+
+  const abilitiesBtn = shell.querySelector(
+    '.character-lower-grid .character-panel:nth-of-type(2) .character-panel__action'
+  );
+  if (abilitiesBtn) {
+    abilitiesBtn.addEventListener('click', () => {
+      openHabilidadesModal(draft, {
+        onClose: () => {
+          // keep the preview panel untouched; the modal is only for consultation
+        }
+      });
+    });
+  }
+
+  const inventoryBtn = shell.querySelector(
+    '.character-lower-grid .character-panel:nth-of-type(3) .character-panel__action'
+  );
+  if (inventoryBtn) {
+    inventoryBtn.addEventListener('click', () => {
+      openInventarioModal(draft, {
+        onClose: () => {
+          // keep the preview panel untouched; the modal is only for consultation
+        }
+      });
+    });
+  }
 
   const overlay = shell.querySelector('.character-modal-overlay');
   const modal = shell.querySelector('.character-modal');
