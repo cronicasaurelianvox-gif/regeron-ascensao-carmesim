@@ -5,6 +5,7 @@ import { getSharedAudioElement } from '../src/audio/shared-audio.js';
 import { musicPlaylist, getTrackSource } from '../src/audio/music-playlist.js';
 import { createAuthScreen, togglePasswordVisibility } from '../src/ui/auth-screen.js';
 import { createAdventureHub } from '../src/ui/adventure-hub.js';
+import { openCharacterModal } from '../src/ui/character-modal.js';
 import { validateEmail, validateLoginForm, validateSignupForm } from '../src/ui/validation.js';
 import { handleRegister } from '../src/services/auth.js';
 import { validateAccessCode } from '../src/services/access-code.js';
@@ -121,6 +122,83 @@ describe('handleRegister', () => {
     expect(validateAccessCode).not.toHaveBeenCalled();
     expect(createUserWithEmailAndPassword).not.toHaveBeenCalled();
     expect(createPlayerProfile).not.toHaveBeenCalled();
+  });
+});
+
+describe('openCharacterModal', () => {
+  it('abre o modal de habilidades por cima da ficha sem converter a preview em catálogo', () => {
+    document.body.innerHTML = '';
+
+    openCharacterModal({
+      displayName: 'Kael',
+      abilities: [
+        {
+          name: 'Golpe Devastador',
+          description: 'Concentra força em um único golpe.',
+          type: 'Ataque',
+          action: '1 Ação',
+          cooldown: '3 Turnos',
+          duration: 'Imediata',
+          targets: '1 Alvo',
+          cost: '20 Energia',
+          buffs: [{ name: 'Fortalecido', description: 'Ganha força temporária.' }],
+          debuffs: [{ name: 'Sangramento', description: 'Dano periódico.' }]
+        }
+      ]
+    });
+
+    const characterShell = document.querySelector('.character-modal-shell');
+    const abilitiesButton = characterShell.querySelector(
+      '.character-panel:nth-of-type(2) .character-panel__action'
+    );
+
+    expect(characterShell).not.toBeNull();
+    expect(abilitiesButton).not.toBeNull();
+    expect(characterShell.querySelector('.character-panel__body--abilities')).not.toBeNull();
+
+    abilitiesButton.click();
+
+    expect(document.querySelector('.habilidades-modal-shell')).not.toBeNull();
+    expect(document.querySelector('.character-modal-shell')).not.toBeNull();
+    expect(
+      document.querySelector('.character-modal-shell .character-panel__body--abilities')
+    ).not.toBeNull();
+  });
+
+  it('abre o modal de inventário como popup separado, sem transformar a preview da ficha', () => {
+    document.body.innerHTML = '';
+
+    openCharacterModal({
+      displayName: 'Kael',
+      inventory: [
+        {
+          id: 'item-1',
+          name: 'Espada Carmesim',
+          type: 'Arma',
+          rarity: 'Raro',
+          level: 6,
+          roll: '4d6 + 6',
+          quantity: 1,
+          description: 'Uma lâmina forjada no fogo.',
+          image: 'https://example.com/sword.png'
+        }
+      ]
+    });
+
+    const characterShell = document.querySelector('.character-modal-shell');
+    const inventoryButton = characterShell.querySelector(
+      '.character-panel:nth-of-type(3) .character-panel__action'
+    );
+
+    expect(characterShell).not.toBeNull();
+    expect(inventoryButton).not.toBeNull();
+    expect(characterShell.querySelector('.character-panel__body')).not.toBeNull();
+
+    inventoryButton.click();
+
+    expect(document.querySelector('.inventario-modal-shell')).not.toBeNull();
+    expect(document.querySelector('.character-modal-shell')).not.toBeNull();
+    expect(document.querySelector('.character-modal-shell .character-panel__body')).not.toBeNull();
   });
 });
 
